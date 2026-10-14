@@ -164,6 +164,29 @@
   [{:keys [redis-conn] :as config} queue]
   (redis/lpop redis-conn (busy-queue-key config queue)))
 
+(defn- crash-result
+  "Build an error result for a job which did not produce a result.
+  This happens when the job throws a `Throwable` which is not handled
+  by the job itself (like an `AssertionError` or `StackOverflowError`)
+  or when the job channel closes without a value.  The error is logged
+  and the result is an `:errors` map, like the ones returned by
+  `job/run!`, which is not retryable."
+  [job ex]
+  (let [error-id      (UUID/randomUUID)
+        trace-context (:trace-context job)
+        message       (if ex
+                        (str "Job crashed: " (or (ex-message ex) (.getName (class ex))))
+                        "Job crashed: no result")]
+    (logging/with-mdc (assoc trace-context :phase :unknown)
+      (if ex
+        (logging/log-exception ex error-id)
+        (log/errorf "%s, error-id: %s, job: %s" message error-id (pr-str job))))
+    {:errors {:error-id      error-id
+              :trace-context trace-context
+              :phase         :unknown
+              :message       message
+              :retryable?    false}}))
+
 (defn- worker-loop
   "Worker loop.
 
@@ -244,46 +267,58 @@
                     (queued-jobs-gauge-fn))
                   ;; run job asynchronous
                   (let [set-status-fn (metrics/wrap-increment-count jobs-counter-fn set-status-fn)
+                        ;; Wrap the result, because a channel can not convey
+                        ;; `nil` and closes without a value when the body throws.
                         c             (async/thread
                                         (.setName (Thread/currentThread) (str "runner-" queue))
-                                        (run-job-fn job))]
+                                        (try
+                                          {::result (run-job-fn job)}
+                                          (catch Throwable ex
+                                            {::crash ex})))]
                     (set-status-fn job :in-progress)
 
                     ;; wait for job to finish and refresh lock regularly while waiting
                     (loop []
-                      (let [result (async/alt!! c ([v] v)
-                                                (async/timeout timeout-ms) ::ping)]
+                      (let [outcome (async/alt!! c ([v] v)
+                                                 (async/timeout timeout-ms) ::ping)]
                         (extend-lock! config queue @token lock-ttl-ms)
 
                         (cond
-                          (= ::ping result)
+                          (= ::ping outcome)
                           (recur)
 
-                          ;; ack, success
-                          (not (or (error-fn result)
-                                   (retryable-fn result)))
-                          (set-status-fn job :done result)
+                          ;; crashed or no result at all, set error status
+                          (not (contains? outcome ::result))
+                          (set-status-fn job :error (crash-result job (::crash outcome)))
 
-                          ;; ack, not retryable, log and set error status
-                          (not (retryable-fn result))
-                          (do
-                            (logging/with-mdc
-                              (:trace-context job)
-                              (log/debugf "Job %s returns error %s" (pr-str job) (pr-str result)))
-                            (set-status-fn job :error result))
-
-                          ;; nack, retryable error, too many retries
-                          (>= (or (::retries job) 0) max-retries)
-                          (set-status-fn job :time-out result)
-
-                          ;; nack, retryable error, schedule retry
                           :else
-                          (do
-                            (enqueue-first! config (update job ::retries (fnil inc 0)))
-                            ;; extend lock lease to retry-wait
-                            (extend-lock! config queue @token retry-wait-ms)
-                            ;; prevent release
-                            (reset! token nil)))))))
+                          (let [result (::result outcome)]
+                            (cond
+                              ;; ack, success
+                              (not (or (error-fn result)
+                                       (retryable-fn result)))
+                              (set-status-fn job :done result)
+
+                              ;; ack, not retryable, log and set error status
+                              (not (retryable-fn result))
+                              (do
+                                (logging/with-mdc
+                                  (:trace-context job)
+                                  (log/debugf "Job %s returns error %s" (pr-str job) (pr-str result)))
+                                (set-status-fn job :error result))
+
+                              ;; nack, retryable error, too many retries
+                              (>= (or (::retries job) 0) max-retries)
+                              (set-status-fn job :time-out result)
+
+                              ;; nack, retryable error, schedule retry
+                              :else
+                              (do
+                                (enqueue-first! config (update job ::retries (fnil inc 0)))
+                                ;; extend lock lease to retry-wait
+                                (extend-lock! config queue @token retry-wait-ms)
+                                ;; prevent release
+                                (reset! token nil)))))))))
 
                 ;; done, remove from busy
                 (job-done! config queue)
