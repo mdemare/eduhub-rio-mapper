@@ -188,6 +188,16 @@
 ;; the link and unlink routes.
 (def actions #{"upsert" "delete" "dry-run-upsert"})
 
+;; Route param constraints, so that requests with an unknown type or
+;; action don't fall through to a more generic route (and fail UUID
+;; validation there) but end up as 404 Not Found.
+(defn- alternatives-re [ss]
+  (re-pattern (str/join "|" (sort ss))))
+
+(def ^:private type-re (alternatives-re (keys types)))
+
+(def ^:private action-re (alternatives-re actions))
+
 (defn- make-job [request action type id]
   {:job (-> request
             (select-keys [:institution-schac-home
@@ -214,16 +224,16 @@
 (defn private-routes [{:keys [enqueuer-fn]}]
   (-> (compojure.core/routes
         ;; Unlink is link to `nil`
-       (POST "/job/unlink/:rio-code/:type" request
+       (POST ["/job/unlink/:rio-code/:type" :type type-re] request
          (link-route request))
 
-       (POST "/job/dry-run/upsert/:type/:id" request
+       (POST ["/job/dry-run/upsert/:type/:id" :type type-re] request
          (job-route (assoc-in request [:params :action] "dry-run-upsert")))
 
-       (POST "/job/link/:rio-code/:type/:id" request
+       (POST ["/job/link/:rio-code/:type/:id" :type type-re] request
          (link-route request))
 
-       (POST "/job/:action/:type/:id" request
+       (POST ["/job/:action/:type/:id" :action action-re :type type-re] request
          (job-route request)))
 
       (compojure.core/wrap-routes wrap-callback-extractor)

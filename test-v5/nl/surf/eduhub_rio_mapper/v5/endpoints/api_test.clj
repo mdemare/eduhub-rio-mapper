@@ -56,7 +56,11 @@
     :get  "/job/upsert/courses/31415"
     :get  "/status"
     :post "/job/upsert/blerk/12345678-1234-2345-3456-123456789abc"
-    :post "/job/blerk/courses/12345678-1234-2345-3456-123456789abc")
+    :post "/job/blerk/courses/12345678-1234-2345-3456-123456789abc"
+    :post "/job/link/1234O4321/blerk/12345678-1234-2345-3456-123456789abc"
+    :post "/job/unlink/1234O4321/blerk"
+    :post "/job/link/1234O4321/programmes/12345678-1234-2345-3456-123456789abc"
+    :post "/job/unlink/1234O4321/programmes")
 
   (testing "link without rio-code is not accepted as a job"
     (are [path]
