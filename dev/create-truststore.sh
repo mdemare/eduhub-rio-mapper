@@ -34,9 +34,11 @@ TRUSTSTORE="$DEV_DIR/../resources/truststore.jks"
 TMP="$(mktemp "$TRUSTSTORE.XXXXXX")"
 trap 'rm -f "$TMP"' EXIT
 
-cat "$DEV_DIR/staat-der-nederlanden-private-root.pem" \
-    "$DEV_DIR/trial-pkioverheid-root-g3.pem" |
-    openssl pkcs12 -export -nokeys \
+# The PEMs are passed to openssl directly rather than piped through cat:
+# sh has no pipefail, so a missing PEM would silently be left out.
+openssl pkcs12 -export -nokeys \
+            -in "$DEV_DIR/staat-der-nederlanden-private-root.pem" \
+            -certfile "$DEV_DIR/trial-pkioverheid-root-g3.pem" \
             -jdktrust anyExtendedKeyUsage \
             -caname "staat der nederlanden private root ca - g1" \
             -caname "trial pkioverheid root ca - g3" \

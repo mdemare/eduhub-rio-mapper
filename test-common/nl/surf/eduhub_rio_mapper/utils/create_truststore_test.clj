@@ -42,22 +42,40 @@
 
 ;; Runs a copy of dev/create-truststore.sh in a scratch tree laid out
 ;; like the repo, so the committed resources/truststore.jks is never
-;; touched.
+;; touched. Files in dev/ for which `skip?` returns true are not
+;; copied. The destination starts out as a non-keystore file.
+(defn- run-script [root skip?]
+  (let [dest (io/file root "resources" "truststore.jks")]
+    (doseq [f (.listFiles (io/file "dev"))
+            :when (re-find #"^create-truststore\.sh$|\.pem$" (.getName f))
+            :when (not (skip? (.getName f)))]
+      (io/make-parents (io/file root "dev" (.getName f)))
+      (io/copy f (io/file root "dev" (.getName f))))
+    (io/make-parents dest)
+    (spit dest "not a keystore")
+    (shell/sh "sh" (str (io/file root "dev" "create-truststore.sh"))
+              :in "")))
+
 (deftest create-truststore-reproduces-committed-file
   (let [root (temp-dir)
         dest (io/file root "resources" "truststore.jks")]
-    (doseq [f (.listFiles (io/file "dev"))
-            :when (re-find #"^create-truststore\.sh$|\.pem$" (.getName f))]
-      (io/make-parents (io/file root "dev" (.getName f)))
-      (io/copy f (io/file root "dev" (.getName f))))
     ;; an existing store must be replaced, not imported into
-    (io/make-parents dest)
-    (spit dest "not a keystore")
-    (let [{:keys [exit out err]} (shell/sh "sh" (str (io/file root "dev" "create-truststore.sh"))
-                                           :in "")]
+    (let [{:keys [exit out err]} (run-script root #{})]
       (is (zero? exit) (str out err)))
     (is (= (trusted-certs (keystore/keystore-resource "truststore.jks" ""))
            (trusted-certs (load-truststore dest))))))
+
+(deftest create-truststore-fails-on-missing-pem
+  (doseq [pem ["staat-der-nederlanden-private-root.pem"
+               "trial-pkioverheid-root-g3.pem"]]
+    (testing pem
+      (let [root (temp-dir)
+            dest (io/file root "resources" "truststore.jks")
+            {:keys [exit out err]} (run-script root #{pem})]
+        (is (not (zero? exit)) (str out err))
+        (is (= "not a keystore" (slurp dest)))
+        (is (= ["truststore.jks"]
+               (vec (.list (io/file root "resources")))))))))
 
 (deftest committed-truststore-is-classpath-resource
   (is (= (.getCanonicalFile (io/file "resources/truststore.jks"))
