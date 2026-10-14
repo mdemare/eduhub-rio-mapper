@@ -205,3 +205,63 @@
         ;; stop workers
         (doseq [worker workers] (worker/stop-worker! worker))
         (worker/purge! config)))))
+
+(defn- run-single-job
+  "Run a single job with `run-job-fn` on a worker.
+  Returns the final status and its data, the number of times the job
+  ran and the busy queue counts."
+  [run-job-fn]
+  (let [last-seen-status (atom nil)
+        runs             (atom 0)
+        config           (-> config
+                             (assoc-in [:worker :error-fn] #(and (map? %) (contains? % :errors)))
+                             (assoc-in [:worker :retryable-fn] #(-> % :errors :retryable? boolean))
+                             (assoc-in [:worker :run-job-fn]
+                                       (fn [job]
+                                         (swap! runs inc)
+                                         (run-job-fn job)))
+                             (assoc-in [:worker :set-status-fn]
+                                       (fn [_ status & [data]]
+                                         (when (#{:done :error :time-out} status)
+                                           (reset! last-seen-status {:status status
+                                                                     :data   data})))))]
+    (worker/purge! config)
+    (let [workers (mapv (fn [_] (worker/start-worker! config)) (range 5))]
+      (worker/enqueue! config {:queue "foo"})
+      (helper/wait-while-predicate nil? last-seen-status 10)
+      ;; give a (wrongly) retried job the chance to run again
+      (Thread/sleep 200)
+      (doseq [worker workers] (worker/stop-worker! worker))
+      (let [busy (worker/queue-counts-by-key :busy-queue config)]
+        (worker/purge! config)
+        (assoc @last-seen-status :runs @runs :busy busy)))))
+
+(defn- assert-crashed [{:keys [status data runs busy]} message-re]
+  (is (= :error status))
+  (is (= 1 runs) "crashed job should not be retried")
+  (is (every? zero? (vals busy)) "crashed job should be removed from busy queue")
+  (let [{:keys [error-id phase message retryable?]} (:errors data)]
+    (is (uuid? error-id))
+    (is (= :unknown phase))
+    (is (false? retryable?))
+    (is (re-find message-re message))))
+
+(deftest ^:redis crashing-job
+  (testing "job throwing an AssertionError"
+    (assert-crashed (run-single-job (fn [_] (assert (string? 42)) :unreachable))
+                    #"Job crashed: Assert failed"))
+
+  (testing "job throwing a StackOverflowError"
+    (assert-crashed (run-single-job (fn [_] (throw (StackOverflowError.))))
+                    #"Job crashed: java.lang.StackOverflowError"))
+
+  (testing "job throwing an exception"
+    (assert-crashed (run-single-job (fn [_] (throw (ex-info "boom" {}))))
+                    #"Job crashed: boom"))
+
+  (testing "job returning nil is a legitimate (empty) result"
+    (let [{:keys [status data runs busy]} (run-single-job (constantly nil))]
+      (is (= :done status))
+      (is (nil? data))
+      (is (= 1 runs))
+      (is (every? zero? (vals busy))))))
