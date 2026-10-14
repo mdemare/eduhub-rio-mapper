@@ -2,23 +2,33 @@
 
 ## Project Structure
 
-This project uses a separated source tree structure to distinguish between v5-specific code and common/shared code:
+The mapper is built as two separate applications, one for OOAPI v5 and
+one for OOAPI v6, from a separated source tree structure that
+distinguishes between version-specific code and common/shared code:
 
 - `src-v5/` - Version 5 specific implementation code
 - `test-v5/` - Version 5 specific tests
+- `src-v6/` - Version 6 specific implementation code
+- `test-v6/` - Version 6 specific tests
 - `src-common/` - Shared/common code (reusable across versions)
 - `test-common/` - Tests for common code
 
-This separation ensures clear architectural boundaries and prevents common code from depending on version-specific code. See `RFC-source-tree-separation.md` for more details.
+This separation ensures clear architectural boundaries: `src-v5` and
+`src-v6` do not use each other, and common code does not depend on
+version-specific code. Each version has its own build
+(`target/eduhub-rio-mapper-v5.jar` and
+`target/eduhub-rio-mapper-v6.jar`, see `make jar`) and Dockerfile (see
+[Docker containers](#docker-containers)). See
+[doc/ooapi-v6-plan.md](doc/ooapi-v6-plan.md) for the background.
 
 ### Testing Common Code Isolation
 
-To validate that common code has no v5 dependencies, run:
+To validate that common code has no version-specific dependencies, run:
 ```sh
 make test-common
 ```
 
-This runs tests with **only** `src-common` on the classpath (excluding `src-v5`). If any common code depends on v5-specific namespaces, the test will fail with a `FileNotFoundException`.
+This runs tests with **only** `src-common` on the classpath (excluding `src-v5` and `src-v6`). If any common code depends on version-specific namespaces, the test will fail with a `FileNotFoundException`.
 
 ## Documentation
 
@@ -152,17 +162,22 @@ sh dev/create-truststore.sh
 
 ## Configuration
 
-The application is configured with environment variables. The following variables
-must be set:
+The application is configured with environment variables. The
+gateway variables have a `_V5` or `_V6` suffix, depending on which
+mapper is run. Run the `document-env-vars` command to list the
+variables and their defaults.
 
 ```
 API_HOSTNAME                        Hostname for listing web API
 API_PORT                            HTTP port for serving web API
 CLIENTS_INFO_PATH                   Clients info config file
 CONNECTION_TIMEOUT_MILLIS           HTTP connection timeout in milliseconds
-GATEWAY_PASSWORD                    OOAPI Gateway Password
-GATEWAY_ROOT_URL                    OOAPI Gateway Root URL
-GATEWAY_USER                        OOAPI Gateway Username
+GATEWAY_PASSWORD_V5                 OOAPI Gateway Password (v5 mapper)
+GATEWAY_PASSWORD_V6                 OOAPI Gateway Password (v6 mapper)
+GATEWAY_ROOT_URL_V5                 OOAPI Gateway Root URL (v5 mapper)
+GATEWAY_ROOT_URL_V6                 OOAPI Gateway Root URL (v6 mapper)
+GATEWAY_USER_V5                     OOAPI Gateway Username (v5 mapper)
+GATEWAY_USER_V6                     OOAPI Gateway Username (v6 mapper)
 JOB_MAX_RETRIES                     Max number of retries of a failed job
 JOB_RETRY_WAIT_MS                   Number of milliseconds to wait before retrying a failed job
 KEYSTORE                            Path to keystore
@@ -179,27 +194,28 @@ STORE_HTTP_REQUESTS                 Boolean; should all http traffic be logged? 
 SURF_CONEXT_CLIENT_ID               SurfCONEXT client id for Mapper service
 SURF_CONEXT_CLIENT_SECRET           SurfCONEXT client secret for Mapper service
 SURF_CONEXT_INTROSPECTION_ENDPOINT  SurfCONEXT introspection endpoint
-TRUSTSTORE                          Path to trust-store
-TRUSTSTORE_PASSWORD                 Trust-store password
 WORKER_API_HOSTNAME                 Hostname for listing worker web API
 WORKER_API_PORT                     HTTP port for serving worker web API
 ```
+
+The truststore is not configurable; it is always loaded from the
+classpath resource `truststore.jks` (`resources/truststore.jks`).
 
 The `CLIENTS_INFO_PATH` should specify a json file with settings for client-id, schac-home and oin:
 
 ```json
 {
-  "clients": ""
-  [{
+  "clients": [{
     "client-id": "rio-mapper-dev.jomco.nl",
     "institution-schac-home": "demo06.test.surfeduhub.nl",
     "institution-oin": "0000000700025BE00000",
-    "institution-name": "University of Uitgeest",
-    "onderwijsbestuurscode": "123B321",
-  },
-  ...]
+    "institution-name": "University of Uitgeest"
+  }]
 }
 ```
+
+Only `client-id` is required. A client without `institution-oin` can
+only use the read-only API endpoints.
 
 ## Docker containers
 

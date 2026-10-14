@@ -17,7 +17,8 @@
 ;; <https://www.gnu.org/licenses/>.
 
 (ns nl.surf.eduhub-rio-mapper.v5.config-test
-  (:require [clojure.test :refer [deftest is]]
+  (:require [clojure.string :as str]
+            [clojure.test :refer [deftest is]]
             [nl.surf.eduhub-rio-mapper.v5.config :as config])
   (:import [clojure.lang ExceptionInfo]
            [java.io File]))
@@ -76,3 +77,21 @@
              :keystore-password-file path}]
     (spit path "repelsteeltje!")
     (is (thrown? ExceptionInfo (test-env env)))))
+
+(defn- readme-env-vars
+  "Environment variables listed in the README \"Configuration\" section."
+  []
+  (let [readme  (slurp "README.md")
+        section (second (re-find #"(?s)## Configuration\n.*?```\n(.*?)```" readme))]
+    (set (map second (re-seq #"(?m)^([A-Z][A-Z0-9_]+)\s" section)))))
+
+(defn- env-var-name [k]
+  (-> k name str/upper-case (str/replace "-" "_")))
+
+(deftest readme-documents-env-vars
+  (let [documented (readme-env-vars)
+        spec       (set (map env-var-name (keys config/opts-spec)))]
+    (is (empty? (remove documented spec))
+        "all config options are documented in the README")
+    (is (empty? (remove spec (map #(str/replace % #"_V6$" "_V5") documented)))
+        "the README documents no unknown config options")))

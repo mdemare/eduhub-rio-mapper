@@ -8,9 +8,6 @@ In order to run the end-to-end tests, the following things should have been take
     - `KEYSTORE_ALIAS` (= `test-surf`)
     - `KEYSTORE_PASSWORD`
 
-    - `TRUSTSTORE` (= `truststore.jks`, already part of this repository)
-    - `TRUSTSTORE_PASSWORD` (= `xxxxxx`)
-
     - `RIO_RECIPIENT_OIN`
     - `RIO_SENDER_OIN`
     - `RIO_READ_URL`
