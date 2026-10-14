@@ -21,6 +21,7 @@
             [clojure.test :refer :all]
             [clojure.walk :as walk]
             [nl.jomco.http-status-codes :as http-status]
+            [nl.surf.eduhub-rio-mapper.api-doc-helper :as api-doc]
             [nl.surf.eduhub-rio-mapper.rio.mutation-test-helper :as mutation-helper]
             [nl.surf.eduhub-rio-mapper.specs.ooapi :as ooapi]
             [nl.surf.eduhub-rio-mapper.specs.rio :as rio]
@@ -421,3 +422,13 @@
     (is (map? (get-in http-message [:res :json-body])))
     (is (= "/programmes/0f212491-c96a-4141-8718-86d40a4ebfd3?returnTimelineOverrides=true"
            (get-in http-message [:res :json-body :gateway :request])))))
+
+(deftest api-documentation
+  (testing "documented requests are accepted"
+    (doseq [[method path] (api-doc/documented-requests :v6)]
+      (let [{:keys [status]} (-> (authenticated-request method path)
+                                 (assoc :institution-schac-home "edu.nl")
+                                 api-routes)]
+        (is (= (if (= :get method) http-status/ok (api-doc/documented-job-response-status :v6))
+               status)
+            (str method " " path))))))
