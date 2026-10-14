@@ -2,14 +2,13 @@ In order to run the end-to-end tests, the following things should have been take
 
 - RIO access (see [test/test-clients.json](test/test-clients.json))
 
-    - `CLIENTS_INFO_PATH` (= `test/test-clients.json`)
+    - `CLIENTS_INFO_PATH` (= `test/test-clients.json`; the sender OIN for RIO calls is the `institution-oin` of the client in this file)
 
     - `KEYSTORE` (including `rio_test_surfeduhub_surf_nl` certificate with key, see also [README](../README.md) for instructions to generate this file)
     - `KEYSTORE_ALIAS` (= `test-surf`)
     - `KEYSTORE_PASSWORD`
 
     - `RIO_RECIPIENT_OIN`
-    - `RIO_SENDER_OIN`
     - `RIO_READ_URL`
     - `RIO_UPDATE_URL`
 
