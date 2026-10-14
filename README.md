@@ -161,6 +161,9 @@ and loaded from the classpath. To regenerate it, run:
 sh dev/create-truststore.sh
 ```
 
+The script needs OpenSSL 3.2 or newer, because keytool cannot create
+a store with the empty password the application uses.
+
 ## Configuration
 
 The application is configured with environment variables. The
