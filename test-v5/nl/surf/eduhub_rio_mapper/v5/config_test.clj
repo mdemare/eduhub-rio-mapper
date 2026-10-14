@@ -19,6 +19,7 @@
 (ns nl.surf.eduhub-rio-mapper.v5.config-test
   (:require [clojure.string :as str]
             [clojure.test :refer [deftest is]]
+            [nl.surf.eduhub-rio-mapper.remote-entities-helper :as remote-entities-helper]
             [nl.surf.eduhub-rio-mapper.v5.config :as config])
   (:import [clojure.lang ExceptionInfo]
            [java.io File]))
@@ -95,3 +96,17 @@
         "all config options are documented in the README")
     (is (empty? (remove spec (map #(str/replace % #"_V6$" "_V5") documented)))
         "the README documents no unknown config options")))
+
+(defn- e2e-doc-env-vars
+  "Environment variables listed as prerequisites in doc/e2e.md."
+  []
+  (set (map second (re-seq #"(?m)^\s*- `([A-Z][A-Z0-9_]+)`" (slurp "doc/e2e.md")))))
+
+(deftest e2e-doc-lists-only-used-env-vars
+  (let [documented (map #(str/replace % #"_V6$" "_V5") (e2e-doc-env-vars))
+        used       (set (concat (map env-var-name (keys config/opts-spec))
+                                (map env-var-name (keys remote-entities-helper/opts-spec))
+                                ;; read directly by e2e-helper to get a bearer token
+                                ["CLIENT_ID" "CLIENT_SECRET" "TOKEN_ENDPOINT"]))]
+    (is (empty? (remove used documented))
+        "doc/e2e.md lists no unused environment variables")))
