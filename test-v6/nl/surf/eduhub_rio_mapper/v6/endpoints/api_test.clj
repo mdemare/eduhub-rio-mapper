@@ -57,6 +57,15 @@
     :post "/job/upsert/blerk/12345678-1234-2345-3456-123456789abc"
     :post "/job/blerk/courses/12345678-1234-2345-3456-123456789abc")
 
+  (testing "link without rio-code is not accepted as a job"
+    (are [path]
+        (do (reset! last-job nil)
+            (let [{:keys [status]} (api-routes (authenticated-request :post path))]
+              (and (is (= http-status/not-found status))
+                   (is (nil? @last-job)))))
+      "/job/link/courses/12345678-1234-2345-3456-123456789abc"
+      "/job/link/programmes/12345678-1234-2345-3456-123456789abc"))
+
   (are [expected-job path]
        (let [{:keys [job status]} (-> :post
                                       (authenticated-request path)
