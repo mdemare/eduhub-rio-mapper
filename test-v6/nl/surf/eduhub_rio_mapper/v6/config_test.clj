@@ -19,65 +19,19 @@
 (ns nl.surf.eduhub-rio-mapper.v6.config-test
   (:require [clojure.string :as str]
             [clojure.test :refer [deftest is]]
+            [nl.surf.eduhub-rio-mapper.config :as common-config]
             [nl.surf.eduhub-rio-mapper.remote-entities-helper :as remote-entities-helper]
-            [nl.surf.eduhub-rio-mapper.v6.config :as config])
-  (:import [clojure.lang ExceptionInfo]
-           [java.io File]))
+            [nl.surf.eduhub-rio-mapper.v6.config :as config]))
 
-(def default-env {:surf-conext-introspection-endpoint "https://gateway.dev.surfnet.nl/",
-                  :keystore-alias "default",
-                  :gateway-password-v6 "default",
-                  :keystore "test/keystore.jks",
-                  :clients-info-path "test/test-clients.json",
-                  :rio-recipient-oin "default",
-                  :rio-update-url "default",
-                  :gateway-user-v6 "default",
-                  :surf-conext-client-id "default",
-                  :surf-conext-client-secret "default",
-                  :gateway-root-url-v6 "https://gateway.test.surfeduhub.nl/",
-                  :rio-read-url "default"})
+;; The shared configuration is tested in nl.surf.eduhub-rio-mapper.config-test;
+;; this only checks that the v6 wrapper selects the v6 gateway settings.
 
-(def default-expected-value {:keystore-pass "repelsteeltje!",
-                             :gateway-credentials
-                             {:password "default", :username "default"},
-                             :redis-conn {:spec {:uri "redis://localhost"}}})
-
-(defn- test-env [env]
-  (config/load-config-from-env (merge default-env env)))
-
-(deftest missing-secret
-  (is (= {:keystore-password "missing"}
-         (last (test-env {})))))
-
-(deftest only-value-secret
-  (let [env {:keystore-password "repelsteeltje!"}]
-    (is (= default-expected-value
-           (-> env test-env first (select-keys [:keystore-pass :gateway-credentials :redis-conn]))))))
-
-(deftest only-file-secret
-  (let [path (.getAbsolutePath (File/createTempFile "test-secret" ".txt"))
-        env {:keystore-password-file path}]
-    (spit path "repelsteeltje!")
-    (is (= default-expected-value
-           (-> env test-env first (select-keys [:keystore-pass :gateway-credentials :redis-conn]))))))
-
-(deftest file-secret-for-env-with-default
-  (let [path (.getAbsolutePath (File/createTempFile "test-secret" ".txt"))
-        env {:redis-uri-file path :keystore-password "repelsteeltje!"}]
-    (spit path "redis://localhost:6381")
-    (is (= (assoc-in default-expected-value [:redis-conn :spec :uri] "redis://localhost:6381")
-           (-> env test-env first (select-keys [:keystore-pass :gateway-credentials :redis-conn]))))))
-
-(deftest only-file-secret-file-missing
-  (let [env {:keystore-password-file "missing-file"}]
-    (is (thrown? ExceptionInfo (test-env env)))))
-
-(deftest both-types-of-secret-specified
-  (let [path (.getAbsolutePath (File/createTempFile "test-secret" ".txt"))
-        env {:keystore-password "repelsteeltje!"
-             :keystore-password-file path}]
-    (spit path "repelsteeltje!")
-    (is (thrown? ExceptionInfo (test-env env)))))
+(deftest wrapper-uses-v6-settings
+  (is (= (common-config/make-opts-spec "v6") config/opts-spec))
+  (is (= :gateway-password-v6 (first config/env-keys-with-alternate-file-secret)))
+  (is (= (common-config/help "v6") (config/help)))
+  (is (str/includes? (config/help) "GATEWAY_ROOT_URL_V6"))
+  (is (= "v6" (:version config/version-fns))))
 
 (defn- readme-env-vars
   "Environment variables listed in the README \"Configuration\" section."
