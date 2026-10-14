@@ -33,7 +33,8 @@
    [nl.surf.eduhub-rio-mapper.v6.commands.link :as link]
    [nl.surf.eduhub-rio-mapper.v6.ooapi.loader :as ooapi.loader]
    [nl.surf.eduhub-rio-mapper.v6.rio.relation-handler :as relation-handler]
-   [nl.surf.eduhub-rio-mapper.v6.rio.updated-handler :as updated-handler])
+   [nl.surf.eduhub-rio-mapper.v6.rio.updated-handler :as updated-handler]
+   [nl.surf.eduhub-rio-mapper.v6.specs.ooapi :as ooapi-v6])
   (:import [clojure.lang ExceptionInfo]))
 
 (defn- extract-prgspec-from-result [result]
@@ -59,7 +60,7 @@
                       {:entity     entity
                        :error      error-msg
                        :retryable? false}))))
-  (when-not (#{"programme" "cluster" "private" "course" "variant"} (:specificationType consumer))
+  (when-not (s/valid? ::ooapi-v6/specification-type (:specificationType consumer))
     (let [error-msg (str "Invalid programme specification: specificationType value '" (:specificationType consumer) "' not allowed")]
       (throw (ex-info error-msg
                       {:entity     entity

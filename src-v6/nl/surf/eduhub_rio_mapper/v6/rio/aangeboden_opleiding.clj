@@ -45,13 +45,9 @@
           :else
           {:eenheid "M" :omvang (.toTotalMonths p)})))))
 
-;; keys are ::ooapi/specification-type
+;; keys are ::ooapi-v6/specification-type
 (def specification-type-mapping
-  {"course"         "aangebodenHOOpleidingsonderdeel"
-   "cluster"        "aangebodenHOOpleidingsonderdeel"
-   "programme"      "aangebodenHOOpleiding"
-   "private"        "aangebodenParticuliereOpleiding"
-   "variant"        "aangebodenHOOpleiding"})
+  (update-vals ooapi-v6/specification-types :aangeboden-opleiding))
 
 (def ^:private mapping-course-program->aangeboden-opleiding
   {:buitenlandsePartner [:foreignPartners true]

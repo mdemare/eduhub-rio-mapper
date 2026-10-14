@@ -20,21 +20,11 @@
   (:require [clojure.string :as str]
             [nl.surf.eduhub-rio-mapper.rio.helper :as rio-helper]
             [nl.surf.eduhub-rio-mapper.v6.rio.helper :as rio-helper-v6]
+            [nl.surf.eduhub-rio-mapper.v6.specs.ooapi :as ooapi-v6]
             [nl.surf.eduhub-rio-mapper.v6.utils.ooapi :as ooapi-utils]))
 
-(def ^:private programme-specification-type-mapping
-  {"course"           "hoOnderwijseenheid"
-   "programme"        "hoOpleiding"
-   "variant"          "hoOpleiding"
-   "private"          "particuliereOpleiding"
-   "cluster"          "hoOnderwijseenhedencluster"})
-
 (defn- soort-mapping [{:keys [consumer]}]
-  (case (:specificationType consumer)
-    "cluster" "HOEC"
-    "programme" "OPLEIDING"
-    "variant" "VARIANT"
-    nil))
+  (get-in ooapi-v6/specification-types [(:specificationType consumer) :soort]))
 
 (defn- programme-specification-timeline-override-adapter
   [{:keys [abbreviation description formalDocument name studyLoad validFrom] :as prgspec}]
@@ -97,4 +87,4 @@
     (throw (ex-info "No specificationType in rio-consumer" {:rio-consumer consumer})))
   (-> (programme-specification-adapter progspec consumer)
       rio-helper/wrapper-periodes-cohorten
-      (rio-helper/->xml (programme-specification-type-mapping (:specificationType consumer)))))
+      (rio-helper/->xml (get-in ooapi-v6/specification-types [(:specificationType consumer) :opleidingseenheid]))))
