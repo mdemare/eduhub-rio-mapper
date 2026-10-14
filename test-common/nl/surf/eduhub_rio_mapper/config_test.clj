@@ -113,6 +113,19 @@
         (is (str/includes? help (str env-var (str/upper-case version))))
         (is (not (str/includes? help (str env-var (str/upper-case other)))))))))
 
+(deftest connection-timeout-reaches-rio-config
+  ;; The RIO and OOAPI HTTP clients read [:rio-config :connection-timeout-millis]
+  (doseq [version versions]
+    (testing "default"
+      (let [[cfg errs] (test-env version {:keystore-password "repelsteeltje!"})]
+        (is (nil? errs))
+        (is (= 10000 (-> cfg :rio-config :connection-timeout-millis)))))
+    (testing "configured value"
+      (let [[cfg errs] (test-env version {:keystore-password         "repelsteeltje!"
+                                          :connection-timeout-millis "2500"})]
+        (is (nil? errs))
+        (is (= 2500 (-> cfg :rio-config :connection-timeout-millis)))))))
+
 (defn- full-env [version]
   (assoc (default-env version)
          :keystore-password "xxxxxx"
