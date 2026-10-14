@@ -147,14 +147,15 @@ become.
 
 ## Create keystore
 
-During development, keystore.jks and truststore.jks files are needed
-in the root of the project. Don't add these to git! In order to generate the keystore, run:
+During development, a keystore.jks file is needed in the root of the
+project. Don't add it to git! In order to generate the keystore, run:
 
 ```sh
 sh dev/create-keystore.sh
 ```
 
-To regenerate the truststore (already included in this repo), run:
+The truststore is included in this repo as `resources/truststore.jks`
+and loaded from the classpath. To regenerate it, run:
 
 ```sh
 sh dev/create-truststore.sh
