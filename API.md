@@ -106,7 +106,9 @@ Mogelijke foutmeldingen bij het aanmaken van een job:
 - `400 Bad Request` met `Malformed callback url` als de `X-Callback`
   header geen geldige http(s) URL bevat.
 - `403 Forbidden` als de client niet aan een instituut gekoppeld is.
-- `404 Not Found` bij een onbekend type of onbekende actie.
+- `404 Not Found` bij een onbekend type of onbekende actie.  Een
+  link zonder rio-code (zoals `POST /job/link/courses/...`) geeft
+  ook `404 Not Found`; gebruik `/job/link/:rio-code/:type/:id`.
 - `503 Service Unavailable` met `Server stopping` als de server aan
   het afsluiten is.
 

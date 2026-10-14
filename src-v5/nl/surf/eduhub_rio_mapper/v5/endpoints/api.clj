@@ -174,24 +174,30 @@
             "education-specifications" "education-specification"
             "programs"                 "program"})
 
-(def actions #{"upsert" "delete" "dry-run-upsert" "link"})
+;; Actions accepted by the generic `/job/:action/:type/:id` route.  A
+;; link job always needs a rio-code, so it is only available through
+;; the link and unlink routes.
+(def actions #{"upsert" "delete" "dry-run-upsert"})
+
+(defn- make-job [request action type id]
+  {:job (-> request
+            (select-keys [:institution-schac-home
+                          :institution-name
+                          :institution-oin
+                          :trace-context])
+            (assoc :action      action
+                   ::ooapi-specs/type type
+                   ::ooapi-specs/id   id))})
 
 (defn job-route [{{:keys [action type id]} :params :as request}]
   (let [type   (types type)
         action (actions action)]
     (when (and type action)
-      {:job (-> request
-                (select-keys [:institution-schac-home
-                              :institution-name
-                              :institution-oin
-                              :trace-context])
-                (assoc :action      action
-                       ::ooapi-specs/type type
-                       ::ooapi-specs/id   id))})))
+      (make-job request action type id))))
 
-(defn link-route [{{:keys [rio-code type]} :params :as request}]
-  {:pre [(types type)]}
-  (let [result   (job-route (assoc-in request [:params :action] "link"))
+(defn link-route [{{:keys [rio-code type id]} :params :as request}]
+  (let [result   (when-let [type (types type)]
+                   (make-job request "link" type id))
         codename (if (= type "education-specifications") ::rio/opleidingscode ::rio/aangeboden-opleiding-code)]
     (when result
       (assoc-in result [:job codename] rio-code))))
