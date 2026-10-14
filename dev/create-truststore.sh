@@ -20,10 +20,28 @@
 
 set -ex
 
-PEM_FILE="$(dirname "$0")/staat-der-nederlanden-private-root.pem"
-TRUSTSTORE_DEST_DIR="$(dirname "$0")/../resources"
+# Builds resources/truststore.jks from scratch: a PKCS12 store with an
+# empty password (see keystore/credentials) holding the root CAs below,
+# aliased by their lowercased CN.
+#
+# keytool refuses passwords shorter than 6 characters, so the store is
+# made with openssl instead; -jdktrust (OpenSSL >= 3.2) marks the
+# certificates as Java trustedCertEntry.
 
-keytool -import \
-        -file "$PEM_FILE" \
-        -alias firstCA \
-        -keystore "$TRUSTSTORE_DEST_DIR/truststore.jks"
+DEV_DIR="$(dirname "$0")"
+TRUSTSTORE="$DEV_DIR/../resources/truststore.jks"
+
+TMP="$(mktemp "$TRUSTSTORE.XXXXXX")"
+trap 'rm -f "$TMP"' EXIT
+
+cat "$DEV_DIR/staat-der-nederlanden-private-root.pem" \
+    "$DEV_DIR/trial-pkioverheid-root-g3.pem" |
+    openssl pkcs12 -export -nokeys \
+            -jdktrust anyExtendedKeyUsage \
+            -caname "staat der nederlanden private root ca - g1" \
+            -caname "trial pkioverheid root ca - g3" \
+            -passout pass: \
+            -out "$TMP"
+
+chmod 644 "$TMP"
+mv "$TMP" "$TRUSTSTORE"

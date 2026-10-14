@@ -19,29 +19,46 @@
 (ns nl.surf.eduhub-rio-mapper.utils.create-truststore-test
   (:require [clojure.java.io :as io]
             [clojure.java.shell :as shell]
-            [clojure.string :as str]
-            [clojure.test :refer :all]))
+            [clojure.test :refer :all]
+            [nl.surf.eduhub-rio-mapper.utils.keystore :as keystore])
+  (:import [java.security KeyStore]))
 
 (defn- temp-dir []
   (.toFile (java.nio.file.Files/createTempDirectory
             "create-truststore-test"
             (make-array java.nio.file.attribute.FileAttribute 0))))
 
-;; Runs dev/create-truststore.sh with a fake keytool that records the
-;; -keystore argument, so we can check where the truststore ends up.
-(deftest create-truststore-writes-classpath-resource
-  (let [bin      (temp-dir)
-        args-out (io/file bin "args")
-        keytool  (io/file bin "keytool")]
-    (spit keytool (str "#!/bin/sh\nprintf '%s\\n' \"$@\" > '" args-out "'\n"))
-    (.setExecutable keytool true)
-    (let [{:keys [exit err]} (shell/sh "sh" "dev/create-truststore.sh"
-                                       :env {"PATH" (str bin ":" (System/getenv "PATH"))})]
-      (is (zero? exit) err))
-    (let [args (str/split-lines (slurp args-out))
-          dest (second (drop-while #(not= "-keystore" %) args))]
-      (is (= (.getCanonicalFile (io/file "resources/truststore.jks"))
-             (.getCanonicalFile (io/file dest))))
-      ;; that is the file the application loads (see keystore/credentials)
-      (is (= (.getCanonicalFile (io/file (io/resource "truststore.jks")))
-             (.getCanonicalFile (io/file dest)))))))
+(defn- load-truststore
+  ^KeyStore [file]
+  (with-open [in (io/input-stream file)]
+    (doto (KeyStore/getInstance "JKS")
+      ;; same password as keystore/credentials
+      (.load in (char-array "")))))
+
+(defn- trusted-certs [^KeyStore ks]
+  (into {}
+        (map (fn [alias] [alias (vec (.getEncoded (.getCertificate ks alias)))]))
+        (enumeration-seq (.aliases ks))))
+
+;; Runs a copy of dev/create-truststore.sh in a scratch tree laid out
+;; like the repo, so the committed resources/truststore.jks is never
+;; touched.
+(deftest create-truststore-reproduces-committed-file
+  (let [root (temp-dir)
+        dest (io/file root "resources" "truststore.jks")]
+    (doseq [f (.listFiles (io/file "dev"))
+            :when (re-find #"^create-truststore\.sh$|\.pem$" (.getName f))]
+      (io/make-parents (io/file root "dev" (.getName f)))
+      (io/copy f (io/file root "dev" (.getName f))))
+    ;; an existing store must be replaced, not imported into
+    (io/make-parents dest)
+    (spit dest "not a keystore")
+    (let [{:keys [exit out err]} (shell/sh "sh" (str (io/file root "dev" "create-truststore.sh"))
+                                           :in "")]
+      (is (zero? exit) (str out err)))
+    (is (= (trusted-certs (keystore/keystore-resource "truststore.jks" ""))
+           (trusted-certs (load-truststore dest))))))
+
+(deftest committed-truststore-is-classpath-resource
+  (is (= (.getCanonicalFile (io/file "resources/truststore.jks"))
+         (.getCanonicalFile (io/file (io/resource "truststore.jks"))))))
