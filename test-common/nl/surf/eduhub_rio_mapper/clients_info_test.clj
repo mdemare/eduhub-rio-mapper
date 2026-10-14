@@ -17,7 +17,8 @@
 ;; <https://www.gnu.org/licenses/>.
 
 (ns nl.surf.eduhub-rio-mapper.clients-info-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.java.io :as io]
+            [clojure.test :refer :all]
             [nl.surf.eduhub-rio-mapper.clients-info :as clients-info]))
 
 (deftest test-make-clients-info
@@ -27,3 +28,18 @@
             :institution-oin        "0000000700025BE00000"
             :institution-name       "Jom College"}
            (clients-info/client-info info "rio-mapper-dev6.jomco.nl")))))
+
+(deftest readme-clients-info-example
+  (let [example (second (re-find #"(?s)The `CLIENTS_INFO_PATH`.*?```json\n(.*?)```"
+                                 (slurp "README.md")))
+        path    (java.io.File/createTempFile "clients-info" ".json")]
+    (try
+      (spit path example)
+      (let [clients (clients-info/read-clients-data {:path (str path)})]
+        (is (seq clients))
+        (is (every? #(empty? (dissoc % :client-id :institution-schac-home
+                                     :institution-oin :institution-name))
+                    clients)
+            "README example only uses keys from the clients-info spec"))
+      (finally
+        (io/delete-file path true)))))
