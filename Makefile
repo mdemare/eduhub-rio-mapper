@@ -1,4 +1,4 @@
-.PHONY: all jar lint proof-specs test test-rio test-all-units test-redis test-e2e test-v5 record-v5 record-v6 test-v6 test-common create-common-test watson antq clean
+.PHONY: all jar lint proof-specs test test-rio test-all-units test-redis test-e2e test-v5 record-v5 record-v6 test-v6 test-common create-common-test watson antq clean check-docker-compose
 
 all: lint proof-specs test watson clean jar
 
@@ -77,6 +77,9 @@ types-edn:
 
 clean:
 	rm -r target
+
+check-docker-compose:
+	sh dev/check-docker-compose.sh
 
 target/eduhub-rio-mapper-v5.jar: $(shell find src-v5 src-common resources -type f)
 	rm -rf target/classes-v5

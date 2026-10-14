@@ -14,8 +14,9 @@ services:
     volumes:
       - ./dev-infra/prometheus.yml:/etc/prometheus/prometheus.yml
   worker:
-    platform: "linux/amd64"
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.${OOAPI_VERSION:-v6} # OOAPI_VERSION=v5 for the v5 mapper
     env_file:
       - .envrc # read environment from local direnv settings
     environment:
@@ -28,15 +29,15 @@ services:
       OTEL_TRACES_EXPORTER: none
       JAVA_TOOL_OPTIONS: -javaagent:./opentelemetry-javaagent.jar
     volumes:
-      - ./truststore.jks:/truststore.jks
       - ./keystore.jks:/keystore.jks
       - ./test/test-clients.json:/test/test-clients.json
     command: worker
     ports:
       - "9465:9464"
   api:
-    platform: "linux/amd64"
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.${OOAPI_VERSION:-v6} # OOAPI_VERSION=v5 for the v5 mapper
     env_file:
       - .envrc # read environment from local direnv settings
     environment:
@@ -51,7 +52,6 @@ services:
       API_HOSTNAME: 0.0.0.0
       API_PORT: 3000
     volumes:
-      - ./truststore.jks:/truststore.jks
       - ./keystore.jks:/keystore.jks
       - ./test/test-clients.json:/test/test-clients.json
     ports:
