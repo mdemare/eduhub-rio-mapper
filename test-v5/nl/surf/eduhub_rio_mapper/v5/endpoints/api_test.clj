@@ -22,6 +22,7 @@
             [clojure.walk :as walk]
             [nl.jomco.http-status-codes :as http-status]
             [nl.surf.eduhub-rio-mapper.api-doc-helper :as api-doc]
+            [nl.surf.eduhub-rio-mapper.endpoints.api-middleware :as api-middleware]
             [nl.surf.eduhub-rio-mapper.endpoints.status :as status]
             [nl.surf.eduhub-rio-mapper.rio.mutation-test-helper :as mutation-helper]
             [nl.surf.eduhub-rio-mapper.specs.ooapi :as ooapi]
@@ -204,7 +205,7 @@
         "real client, mutation request"))
 
 (deftest wrap-code-validator
-  (let [app (api/wrap-code-validator identity)]
+  (let [app (api-middleware/wrap-code-validator identity)]
 
     (is (= {:status 400, :body "Invalid aangeboden opleidingcode 'foo'"}
            (app {:job {::rio/aangeboden-opleiding-code "foo"}}))
@@ -224,7 +225,7 @@
 
 (deftest wrap-job-queuer
   (let [queue-atom (atom [])
-        app        (api/wrap-job-enqueuer identity #(swap! queue-atom conj %))]
+        app        (api-middleware/wrap-job-enqueuer identity #(swap! queue-atom conj %) (:enqueued-status api/version-options))]
 
     (is (= {} (app {}))
         "no job, do nothing")
@@ -276,7 +277,7 @@
             "suppress-http-messages should be false when header is not 'true'")))))
 
 (deftest wrap-callback-extractor
-  (let [app        (api/wrap-callback-extractor identity)]
+  (let [app        (api-middleware/wrap-callback-extractor identity (:callback-url-key api/version-options))]
 
     (is (= {} (app {}))
         "no callback, do nothing")
@@ -294,7 +295,7 @@
         http-messages-xml [{:req {:headers {"Accept" "application/xml"}} :res {:status {:finished true}, :body "{\"foo\": 123}"}}]
         status {:http-messages http-messages-json, :profile "rio"}
         f (fn mocked-wrap-status-getter [req status-getter]
-            (let [f (api/wrap-status-getter
+            (let [f (api-middleware/wrap-status-getter
                       (fn [req] {:token (:token req)})
                       {:status-getter-fn status-getter})]
               (f req)))]
@@ -332,7 +333,7 @@
   (let [config      {:redis-conn       {:pool {} :spec {:uri (or (System/getenv "REDIS_URI") "redis://localhost")}}
                      :redis-key-prefix "eduhub-rio-mapper-test"
                      :status-ttl-sec   10}
-        app         (api/wrap-status-getter identity {:status-getter-fn (partial status/rget config)})
+        app         (api-middleware/wrap-status-getter identity {:status-getter-fn (partial status/rget config)})
         status-set! (status/make-set-status-fn config ::job/callback-url)]
     (status/purge! config)
 
@@ -432,7 +433,7 @@
                           :http-messages
                           first
                           stringify-headers
-                          api/add-single-parsed-json-response)]
+                          api-middleware/add-single-parsed-json-response)]
     (is (string? (get-in http-message [:res :body])))
     (is (map? (get-in http-message [:res :json-body])))
     (is (= "/programs/0f212491-c96a-4141-8718-86d40a4ebfd3?returnTimelineOverrides=true"
