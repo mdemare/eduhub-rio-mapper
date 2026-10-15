@@ -20,7 +20,9 @@
   (:require [clojure.string :as str]
             [clojure.test :refer [deftest is]]
             [nl.surf.eduhub-rio-mapper.config :as common-config]
+            [nl.surf.eduhub-rio-mapper.endpoints.status :as status]
             [nl.surf.eduhub-rio-mapper.remote-entities-helper :as remote-entities-helper]
+            [nl.surf.eduhub-rio-mapper.utils.redis :as redis]
             [nl.surf.eduhub-rio-mapper.v6.config :as config]))
 
 ;; The shared configuration is tested in nl.surf.eduhub-rio-mapper.config-test;
@@ -32,6 +34,19 @@
   (is (= (common-config/help "v6") (config/help)))
   (is (str/includes? (config/help) "GATEWAY_ROOT_URL_V6"))
   (is (= "v6" (:version config/version-fns))))
+
+(deftest set-status-fn-reads-persisted-callback-url-key
+  ;; Queued jobs are stored in Redis with this exact keyword; renaming it
+  ;; would drop callbacks for jobs in flight during a deploy.
+  (let [callback-urls (atom [])]
+    (with-redefs [redis/set                (fn [& _])
+                  status/do-async-callback (fn [_config url _job]
+                                             (swap! callback-urls conj url))]
+      (((:make-set-status-fn config/version-fns) {:status-ttl-sec 60})
+       {:token                                         "test"
+        :nl.surf.eduhub-rio-mapper.v6.job/callback-url "https://example.com/hook"}
+       :done))
+    (is (= ["https://example.com/hook"] @callback-urls))))
 
 (defn- readme-env-vars
   "Environment variables listed in the README \"Configuration\" section."

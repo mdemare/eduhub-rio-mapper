@@ -1,6 +1,6 @@
 ;; This file is part of eduhub-rio-mapper
 ;;
-;; Copyright (C) 2026 SURFnet B.V.
+;; Copyright (C) 2022 SURFnet B.V.
 ;;
 ;; This program is free software: you can redistribute it and/or
 ;; modify it under the terms of the GNU Affero General Public License
@@ -16,23 +16,32 @@
 ;; License along with this program.  If not, see
 ;; <https://www.gnu.org/licenses/>.
 
-(ns nl.surf.eduhub-rio-mapper.v5.endpoints.status-test
+(ns nl.surf.eduhub-rio-mapper.endpoints.status-test
   (:require [clojure.core.async :as async]
             [clojure.test :refer [deftest is testing]]
+            [nl.surf.eduhub-rio-mapper.endpoints.status :as status]
             [nl.surf.eduhub-rio-mapper.rio.mutation-test-helper :as mutation-helper]
             [nl.surf.eduhub-rio-mapper.specs.ooapi :as ooapi]
             [nl.surf.eduhub-rio-mapper.specs.rio :as rio]
             [nl.surf.eduhub-rio-mapper.utils.http-utils :as http-utils]
             [nl.surf.eduhub-rio-mapper.utils.logging :as logging]
-            [nl.surf.eduhub-rio-mapper.utils.redis :as redis]
-            [nl.surf.eduhub-rio-mapper.v5.endpoints.status :as status]))
+            [nl.surf.eduhub-rio-mapper.utils.redis :as redis]))
 
 (deftest successful-upsert-retains-rio-code-test
+  ;; OOAPI types: v5 education-specification/program, v6 programme.
   (doseq [[description ooapi-type result expected-attributes]
-          [["opleidingseenheid" "education-specification"
+          [["opleidingseenheid v5" "education-specification"
             (mutation-helper/successful-mutation "aanleveren_opleidingseenheid" "1010O8815")
             {:opleidingseenheidcode "1010O8815"}]
-           ["aangeboden opleiding" "program"
+           ["opleidingseenheid v6" "programme"
+            (mutation-helper/successful-mutation "aanleveren_opleidingseenheid" "1010O8815")
+            {:opleidingseenheidcode "1010O8815"}]
+           ["aangeboden opleiding v5" "program"
+            (assoc (mutation-helper/successful-mutation "aanleveren_aangebodenOpleiding"
+                                                       "bd6cb46b-3f4e-49c2-a1f7-e24ae82b0672")
+                   ::rio/aangeboden-opleiding-code "bd6cb46b-3f4e-49c2-a1f7-e24ae82b0672")
+            {:aangebodenopleidingcode "bd6cb46b-3f4e-49c2-a1f7-e24ae82b0672"}]
+           ["aangeboden opleiding v6" "programme"
             (assoc (mutation-helper/successful-mutation "aanleveren_aangebodenOpleiding"
                                                        "bd6cb46b-3f4e-49c2-a1f7-e24ae82b0672")
                    ::rio/aangeboden-opleiding-code "bd6cb46b-3f4e-49c2-a1f7-e24ae82b0672")
@@ -42,14 +51,42 @@
         ;; Capture the persisted status without requiring Redis.
         (with-redefs [redis/set (fn [_conn _key value & _opts]
                                  (reset! stored-status value))]
-          ((status/make-set-status-fn {:status-ttl-sec 60})
+          ((status/make-set-status-fn {:status-ttl-sec 60} ::callback-url)
            {:token "test-upsert"
             :action "upsert"
             ::ooapi/type ooapi-type
             ::ooapi/id "12345678-1234-2345-3456-123456789abc"}
            :done result))
         (is (= :done (:status @stored-status)))
+        (is (= (str ooapi-type "/12345678-1234-2345-3456-123456789abc")
+               (:resource @stored-status)))
         (is (= expected-attributes (:attributes @stored-status)))))))
+
+(deftest callback-url-key-test
+  (let [callbacks     (atom [])
+        set-status-fn (status/make-set-status-fn {:status-ttl-sec 60} ::callback-url)
+        job           {:token "test-callback-url"
+                       :action "delete"
+                       ::callback-url "https://example.com/hook"}]
+    (with-redefs [redis/set                (fn [& _])
+                  status/do-async-callback (fn [_config url job]
+                                             (swap! callbacks conj [url (:token job)]))]
+      (testing "no callback for non-final status"
+        (set-status-fn job :in-progress)
+        (is (empty? @callbacks)))
+
+      (testing "callback url is read from the given key on final status"
+        (set-status-fn job :done)
+        (is (= [["https://example.com/hook" "test-callback-url"]] @callbacks)))
+
+      (testing "no callback without a url under the given key"
+        (reset! callbacks [])
+        (set-status-fn (dissoc job ::callback-url) :error)
+        (set-status-fn (-> job
+                           (dissoc ::callback-url)
+                           (assoc :callback-url "https://example.com/hook"))
+                       :error)
+        (is (empty? @callbacks))))))
 
 (def ^:private retry-sleep-ms 300)
 
@@ -69,7 +106,7 @@
                                                      (if (instance? Exception r)
                                                        (throw r)
                                                        {:status r})))]
-      (async/<!! (#'status/do-async-callback {} {:token "test-callback"}))
+      (async/<!! (#'status/do-async-callback {} "https://example.com/hook" {:token "test-callback"}))
       {:attempts @attempts
        :finished (System/currentTimeMillis)})))
 

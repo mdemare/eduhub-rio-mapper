@@ -20,9 +20,9 @@
   (:require [clojure.data.json :as json]
             [clojure.pprint :as pprint]
             [clojure.string :as str]
+            [nl.surf.eduhub-rio-mapper.endpoints.status :as status]
             [nl.surf.eduhub-rio-mapper.v5.cli-commands :as cli-commands]
-            [nl.surf.eduhub-rio-mapper.v5.config :as config]
-            [nl.surf.eduhub-rio-mapper.v5.endpoints.status :as status])
+            [nl.surf.eduhub-rio-mapper.v5.config :as config])
   (:gen-class))
 
 (def commands

@@ -172,7 +172,7 @@
 ;;
 ;;   :version            OOAPI version string, "v5" or "v6"
 ;;   :make-handlers      processing/make-handlers
-;;   :make-set-status-fn status/make-set-status-fn
+;;   :make-set-status-fn #(status/make-set-status-fn % ::job/callback-url)
 ;;   :run-job            job/run!, called as (run-job handlers job store-http-requests)
 ;;   :retryable?         status/retryable?
 ;;   :errors?            status/errors?

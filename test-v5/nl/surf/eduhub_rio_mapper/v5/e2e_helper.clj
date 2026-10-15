@@ -24,14 +24,14 @@
             [environ.core :refer [env]]
             [nl.jomco.http-status-codes :as http-status]
             [nl.surf.eduhub-rio-mapper.clients-info :as clients-info]
+            [nl.surf.eduhub-rio-mapper.endpoints.status :as status]
             [nl.surf.eduhub-rio-mapper.remote-entities-helper :as remote-entities]
             [nl.surf.eduhub-rio-mapper.rio.loader :as rio-loader]
             [nl.surf.eduhub-rio-mapper.specs.rio :as rio]
             [nl.surf.eduhub-rio-mapper.utils.http-utils :as http-utils]
             [nl.surf.eduhub-rio-mapper.utils.printer :as printer]
             [nl.surf.eduhub-rio-mapper.utils.xml-utils :as xml-utils]
-            [nl.surf.eduhub-rio-mapper.v5.config :as config]
-            [nl.surf.eduhub-rio-mapper.v5.endpoints.status :as status])
+            [nl.surf.eduhub-rio-mapper.v5.config :as config])
   (:import [java.io File StringWriter]
            [java.net ConnectException]
            [java.util Base64 List]
