@@ -16,7 +16,7 @@
 ;; License along with this program.  If not, see
 ;; <https://www.gnu.org/licenses/>.
 
-(ns nl.surf.eduhub-rio-mapper.v5.endpoints.status
+(ns nl.surf.eduhub-rio-mapper.endpoints.status
   (:require [clojure.core.async :as async]
             [clojure.data.json :as json]
             [clojure.tools.logging :as log]
@@ -26,8 +26,7 @@
             [nl.surf.eduhub-rio-mapper.specs.rio :as rio]
             [nl.surf.eduhub-rio-mapper.utils.http-utils :as http-utils]
             [nl.surf.eduhub-rio-mapper.utils.logging :as logging]
-            [nl.surf.eduhub-rio-mapper.utils.redis :as redis]
-            [nl.surf.eduhub-rio-mapper.v5.job :as job])
+            [nl.surf.eduhub-rio-mapper.utils.redis :as redis])
   (:import [java.time Instant]))
 
 (defn- status-key
@@ -60,10 +59,10 @@
 ;; Number of retries after the initial webhook attempt.
 (def callback-max-retries 3)
 
-(defn- do-async-callback [config {:keys [token trace-context suppress-http-messages] :as job}]
+(defn- do-async-callback [config callback-url {:keys [token trace-context suppress-http-messages] :as job}]
   (let [status (rget config token)
         status (if suppress-http-messages (dissoc status :http-messages) status)
-        req    {:url                    (::job/callback-url job)
+        req    {:url                    callback-url
                 :method                 :post
                 :content-type           :json
                 :institution-schac-home (:institution-schac-home job)
@@ -73,22 +72,22 @@
                 :throw-exceptions       false}]
     (async/thread
       (trace-context/with-context trace-context
-                                  (logging/with-mdc (assoc trace-context
-                                                      :token                  token
-                                                      :url                    (::job/callback-url job)
-                                                      :institution-schac-home (:institution-schac-home job)
-                                                      :institution-name       (:institution-name job))
-                                                    (loop [retries-left callback-max-retries]
-                                                      (let [status (try
-                                                                     (-> req http-utils/send-http-request :status)
-                                                                     (catch Exception ex
-                                                                       (logging/log-exception ex nil)
-                                                                       nil))]
-                                                        (when-not (http-status/success-status? status)
-                                                          (log/debugf "Could not reach webhook %s, %d retries left" (:url req) retries-left)
-                                                          (when (pos? retries-left)
-                                                            (Thread/sleep callback-retry-sleep-ms)
-                                                            (recur (dec retries-left)))))))))))
+        (logging/with-mdc (assoc trace-context
+                                 :token                  token
+                                 :url                    callback-url
+                                 :institution-schac-home (:institution-schac-home job)
+                                 :institution-name       (:institution-name job))
+          (loop [retries-left callback-max-retries]
+            (let [status (try
+                           (-> req http-utils/send-http-request :status)
+                           (catch Exception ex
+                             (logging/log-exception ex nil)
+                             nil))]
+              (when-not (http-status/success-status? status)
+                (log/debugf "Could not reach webhook %s, %d retries left" (:url req) retries-left)
+                (when (pos? retries-left)
+                  (Thread/sleep callback-retry-sleep-ms)
+                  (recur (dec retries-left)))))))))))
 
 (def final-status? #{:done :error :time-out})
 
@@ -104,8 +103,16 @@
   (and (errors? x)
        (some-> x :errors :retryable? boolean)))
 
-(defn make-set-status-fn [config]
-  (fn [{::job/keys [callback-url] :keys [token action created-at started-at] ::ooapi/keys [id type] :as job}
+(defn make-set-status-fn
+  "Return a fn that stores job statuses in Redis and calls webhooks.
+
+  For final statuses the stored status is also posted to the job's
+  webhook.
+
+  `callback-url-key` is the version's `::job/callback-url` keyword. Jobs
+  are persisted with this fully qualified keyword, so it must not change."
+  [config callback-url-key]
+  (fn [{callback-url callback-url-key :keys [token action created-at started-at] ::ooapi/keys [id type] :as job}
        status & [data]]
     (let [opleidingseenheidcode (:opleidingscode data)
           aangeb-opleidingcode  (-> data ::rio/aangeboden-opleiding-code)
@@ -119,40 +126,40 @@
                                          :resource   (str type "/" id)}
 
                                         ; set finished-at in status, not in job. the job is no longer needed.
-                                        (#{:done :error :time-out} status)
-                                        (assoc :finished-at (str (Instant/now)))
+                                  (#{:done :error :time-out} status)
+                                  (assoc :finished-at (str (Instant/now)))
 
-                                        (and (= :done status)
-                                             opleidingseenheidcode)
+                                  (and (= :done status)
+                                       opleidingseenheidcode)
                                         ;; The mutator returns the opleidingseenheid code directly.
-                                        (assoc :attributes {:opleidingseenheidcode opleidingseenheidcode})
+                                  (assoc :attributes {:opleidingseenheidcode opleidingseenheidcode})
 
-                                        (and (:store-http-requests config)
-                                             (#{:done :error :time-out} status)
-                                             (-> data :http-messages))
-                                        (assoc :http-messages (-> data :http-messages))
+                                  (and (:store-http-requests config)
+                                       (#{:done :error :time-out} status)
+                                       (-> data :http-messages))
+                                  (assoc :http-messages (-> data :http-messages))
 
-                                        (and (= :done status)
-                                             aangeb-opleidingcode)
-                                        (assoc :attributes {:aangebodenopleidingcode aangeb-opleidingcode})
+                                  (and (= :done status)
+                                       aangeb-opleidingcode)
+                                  (assoc :attributes {:aangebodenopleidingcode aangeb-opleidingcode})
 
-                                        (:dry-run data)
-                                        (assoc :attributes (:dry-run data))
+                                  (:dry-run data)
+                                  (assoc :attributes (:dry-run data))
 
-                                        (:link data)
-                                        (assoc :attributes (:link data))
+                                  (:link data)
+                                  (assoc :attributes (:link data))
 
-                                        (#{:error :time-out} status)
-                                        (assoc :phase (-> data :errors :phase)
-                                               :message (-> data :errors :message)))]
+                                  (#{:error :time-out} status)
+                                  (assoc :phase (-> data :errors :phase)
+                                         :message (-> data :errors :message)))]
 
       (logging/with-mdc value
-                        (case status
-                          :done (log/infof "Finished job, token %s, type %s, id %s" token type id)
-                          :error (log/warnf "Failed job, token %s, type %s, id %s" token type id)
-                          :time-out (log/warnf "Timed out job, token %s, type %s, id %s" token type id)
+        (case status
+          :done (log/infof "Finished job, token %s, type %s, id %s" token type id)
+          :error (log/warnf "Failed job, token %s, type %s, id %s" token type id)
+          :time-out (log/warnf "Timed out job, token %s, type %s, id %s" token type id)
                           ;; Only log final statuses, not statuses such as "in-progress"
-                          nil))
+          nil))
 
       (rset! config token value))
 
@@ -162,4 +169,4 @@
          :url                    callback-url
          :institution-name       (:institution-name job)
          :institution-schac-home (:institution-schac-home job)}
-        (do-async-callback config job)))))
+        (do-async-callback config callback-url job)))))

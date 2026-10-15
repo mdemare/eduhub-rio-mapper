@@ -20,8 +20,8 @@
   "Wrapper around `nl.surf.eduhub-rio-mapper.config` for OOAPI v5."
   (:require [environ.core :refer [env]]
             [nl.surf.eduhub-rio-mapper.config :as config]
+            [nl.surf.eduhub-rio-mapper.endpoints.status :as status]
             [nl.surf.eduhub-rio-mapper.v5.commands.processing :as processing]
-            [nl.surf.eduhub-rio-mapper.v5.endpoints.status :as status]
             [nl.surf.eduhub-rio-mapper.v5.job :as job]))
 
 (def version "v5")
@@ -46,7 +46,7 @@
 (def version-fns
   {:version            version
    :make-handlers      processing/make-handlers
-   :make-set-status-fn status/make-set-status-fn
+   :make-set-status-fn #(status/make-set-status-fn % ::job/callback-url)
    :run-job            job/run!
    :retryable?         status/retryable?
    :errors?            status/errors?})

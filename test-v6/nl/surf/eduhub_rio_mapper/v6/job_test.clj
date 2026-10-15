@@ -22,9 +22,9 @@
    [clojure.data.json :as json]
    [clojure.test :refer :all]
    [nl.jomco.http-status-codes :as http-status]
+   [nl.surf.eduhub-rio-mapper.endpoints.status :as status]
    [nl.surf.eduhub-rio-mapper.rio.mutation-test-helper :as mutation-helper]
    [nl.surf.eduhub-rio-mapper.specs.ooapi :as ooapi]
-   [nl.surf.eduhub-rio-mapper.v6.endpoints.status :as status]
    [nl.surf.eduhub-rio-mapper.v6.job :as job]
    [nl.surf.eduhub-rio-mapper.v6.test-helper :as helper])
   (:refer-clojure :exclude [run!]))
@@ -57,7 +57,7 @@
 (deftest ^:redis webhook
   (testing "webhook"
     (let [last-seen-request-atom (atom nil)
-          set-status-fn          (status/make-set-status-fn config)
+          set-status-fn          (status/make-set-status-fn config ::job/callback-url)
           job                    {::job/callback-url "https://github.com/"
                                   :action            "delete"
                                   ::ooapi/type       "course"
@@ -87,7 +87,7 @@
   (testing "webhook with http-messages"
     (let [config-with-http-logs  (assoc config :store-http-requests true)
           last-seen-request-atom (atom nil)
-          set-status-fn          (status/make-set-status-fn config-with-http-logs)
+          set-status-fn          (status/make-set-status-fn config-with-http-logs ::job/callback-url)
           http-messages          [{:req {:url "https://example.com/"} :res {:status 200}}]
           job                    {::job/callback-url "https://github.com/"
                                   :action            "delete"

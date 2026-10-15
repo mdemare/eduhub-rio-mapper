@@ -22,11 +22,11 @@
             [clojure.walk :as walk]
             [nl.jomco.http-status-codes :as http-status]
             [nl.surf.eduhub-rio-mapper.api-doc-helper :as api-doc]
+            [nl.surf.eduhub-rio-mapper.endpoints.status :as status]
             [nl.surf.eduhub-rio-mapper.rio.mutation-test-helper :as mutation-helper]
             [nl.surf.eduhub-rio-mapper.specs.ooapi :as ooapi]
             [nl.surf.eduhub-rio-mapper.specs.rio :as rio]
             [nl.surf.eduhub-rio-mapper.v5.endpoints.api :as api]
-            [nl.surf.eduhub-rio-mapper.v5.endpoints.status :as status]
             [nl.surf.eduhub-rio-mapper.v5.job :as job]
             [ring.mock.request :refer [request]]))
 
@@ -333,7 +333,7 @@
                      :redis-key-prefix "eduhub-rio-mapper-test"
                      :status-ttl-sec   10}
         app         (api/wrap-status-getter identity {:status-getter-fn (partial status/rget config)})
-        status-set! (status/make-set-status-fn config)]
+        status-set! (status/make-set-status-fn config ::job/callback-url)]
     (status/purge! config)
 
     (status-set! {:token       "test-pending"
