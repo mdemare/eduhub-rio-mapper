@@ -23,6 +23,7 @@
     [clojure.test :refer :all]
     [nl.jomco.http-status-codes :as http-status]
     [nl.surf.eduhub-rio-mapper.endpoints.status :as status]
+    [nl.surf.eduhub-rio-mapper.redis-test-helper :as redis-helper]
     [nl.surf.eduhub-rio-mapper.rio.mutation-test-helper :as mutation-helper]
     [nl.surf.eduhub-rio-mapper.specs.ooapi :as ooapi]
     [nl.surf.eduhub-rio-mapper.v5.job :as job]
@@ -34,8 +35,8 @@
 (def dummy-job {::ooapi/id "0", ::ooapi/type "0", :action "delete", :institution-schac-home 0, :institution-oin 0})
 
 (def config
-  {:redis-conn       {:pool {} :spec {:uri (or (System/getenv "REDIS_URI") "redis://localhost")}}
-   :redis-key-prefix "eduhub-rio-mapper-test"
+  {:redis-conn       redis-helper/redis-conn
+   :redis-key-prefix redis-helper/redis-key-prefix
    :status-ttl-sec   10
    :worker           {:nap-ms        10
                       :retry-wait-ms 10
