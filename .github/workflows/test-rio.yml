@@ -47,7 +47,6 @@ jobs:
           OS_USERNAME: ${{ secrets.OS_USERNAME }}
           RIO_READ_URL: ${{ secrets.RIO_READ_URL }}
           RIO_RECIPIENT_OIN: ${{ secrets.RIO_RECIPIENT_OIN }}
-          RIO_SENDER_OIN: ${{ secrets.RIO_SENDER_OIN }}
           RIO_RETRY_ATTEMPTS_SECONDS: '5,10,15'
           RIO_UPDATE_URL: ${{ secrets.RIO_UPDATE_URL }}
           SLACK_URL: ${{ secrets.SLACK_URL }}
