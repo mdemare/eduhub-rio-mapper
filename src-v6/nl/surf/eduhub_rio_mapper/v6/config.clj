@@ -34,9 +34,6 @@
 (defn help []
   (config/help version))
 
-(defn load-config-from-env [env-map]
-  (config/load-config-from-env version env-map))
-
 (defn make-config
   ([]
    (make-config env))
