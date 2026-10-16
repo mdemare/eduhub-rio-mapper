@@ -106,6 +106,7 @@
       (is (= http-status/bad-request (:status (routes (private (request :post "/job/x"))))))
       (is (= http-status/bad-request
              (:status (routes (private (request :post (str "/link/" uuid "/x")))))))
+      (is (nil? @last-job) "rejected requests must not enqueue")
       (let [res (routes (-> (request :post (str "/job/" uuid))
                             (assoc-in [:headers "x-callback"] "https://surf.nl/")
                             private))]

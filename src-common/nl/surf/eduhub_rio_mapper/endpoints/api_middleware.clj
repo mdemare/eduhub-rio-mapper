@@ -197,8 +197,10 @@
 (defn- private-routes [job-routes {:keys [enqueuer-fn enqueued-status callback-url-key]}]
   (-> job-routes
       (compojure.core/wrap-routes wrap-callback-extractor callback-url-key)
-      (compojure.core/wrap-routes wrap-job-enqueuer enqueuer-fn enqueued-status)
+      ;; Response validation must finish before enqueueing: rejected requests
+      ;; must enqueue zero jobs and create no job status.
       (compojure.core/wrap-routes wrap-code-validator)
+      (compojure.core/wrap-routes wrap-job-enqueuer enqueuer-fn enqueued-status)
       (compojure.core/wrap-routes wrap-uuid-validator)
       (compojure.core/wrap-routes wrap-access-control-private)))
 
