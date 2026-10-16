@@ -39,6 +39,7 @@
             [nl.surf.eduhub-rio-mapper.specs.rio :as rio]
             [nl.surf.eduhub-rio-mapper.utils.authentication :as authentication]
             [nl.surf.eduhub-rio-mapper.utils.logging :refer [with-mdc wrap-logging]]
+            [nl.surf.eduhub-rio-mapper.utils.uuid :refer [valid-uuid?]]
             [nl.surf.eduhub-rio-mapper.worker :as worker]
             [ring.middleware.defaults :as defaults]
             [ring.util.response :as response])
@@ -64,11 +65,6 @@
         (finally
           (swap! nr-active-requests dec)))
       {:status http-status/service-unavailable :body "Server stopping"})))
-
-(defn- valid-uuid? [uuid]
-  (try (UUID/fromString uuid)
-       true
-       (catch IllegalArgumentException _ false)))
 
 (defn- prepare-job-for-enqueuement [res token suppress-header]
   (assoc (:job res)

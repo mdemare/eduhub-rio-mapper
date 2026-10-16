@@ -1,15 +1,9 @@
 (ns nl.surf.eduhub-rio-mapper.v6.utils.ooapi
   (:require [clojure.string :as str])
   (:import [java.time LocalDate]
-           [java.time.format DateTimeFormatter DateTimeParseException]
-           [java.util UUID]))
+           [java.time.format DateTimeFormatter DateTimeParseException]))
 
 (def date-format (DateTimeFormatter/ofPattern "uuuu-MM-dd"))
-
-(defn valid-uuid? [uuid]
-  (try (UUID/fromString uuid)
-       true
-       (catch IllegalArgumentException _ false)))
 
 (defn get-localized-value-exclusive
   "Get localized value from LanguageTypedString.
