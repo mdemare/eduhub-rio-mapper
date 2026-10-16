@@ -72,6 +72,63 @@
         (future-cancel request-task)
         (remove-watch server-stopping ::stopping)))))
 
+(deftest shutdown-coordinates-with-admission-test
+  (let [{:keys [server-stopping nr-active-requests] :as lifecycle} (api-middleware/make-lifecycle)
+        incrementing (promise)
+        allow-increment (promise)
+        entered (promise)
+        release (promise)
+        stopping (promise)
+        drained (promise)
+        app (api-middleware/wrap-server-status
+             (fn [_] (deliver entered true) @release :ok) lifecycle)
+        drain-thread (Thread. ^Runnable #(do (api-middleware/shutdown-handler lifecycle)
+                                             (deliver drained true)))]
+    ;; Pause after the stopping check, but before the increment is committed.
+    ;; A validator runs before the atom's CAS, unlike a watch (which runs after).
+    (set-validator! nr-active-requests
+                    (fn [n]
+                      (when (= n 1)
+                        (deliver incrementing true)
+                        @allow-increment)
+                      true))
+    (add-watch server-stopping ::admission-stopping
+               (fn [_ _ _ value] (when value (deliver stopping true))))
+    (let [request-task (future (app {}))]
+      (try
+        (is (= true (deref incrementing 2000 :timeout)))
+        (is (zero? @nr-active-requests))
+        (.start drain-thread)
+        ;; Wait for an observable outcome, rather than assuming shutdown was
+        ;; scheduled within a sleep: it either blocks on admission or returns.
+        (let [deadline (+ (System/nanoTime) 2000000000)
+              state (loop []
+                      (let [state (.getState drain-thread)]
+                        (if (or (#{Thread$State/BLOCKED Thread$State/TERMINATED} state)
+                                (> (System/nanoTime) deadline))
+                          state
+                          (do (Thread/sleep 1) (recur)))))]
+          (is (= Thread$State/BLOCKED state)
+              "shutdown must coordinate with an admission in progress")
+          (is (not (realized? drained)) "drain cannot return before admission finishes"))
+        (deliver allow-increment true)
+        (is (= true (deref entered 2000 :timeout)))
+        (is (= true (deref stopping 2000 :timeout)))
+        (is (= 1 @nr-active-requests))
+        (is (not (realized? drained)) "drain must wait for the admitted handler")
+        (is (= {:status http-status/service-unavailable :body "Server stopping"}
+               (app {})))
+        (deliver release true)
+        (is (= :ok (deref request-task 2000 :timeout)))
+        (is (= true (deref drained 2000 :timeout)))
+        (is (zero? @nr-active-requests))
+        (finally
+          (deliver allow-increment true)
+          (deliver release true)
+          (future-cancel request-task)
+          (.join drain-thread 2000)
+          (remove-watch server-stopping ::admission-stopping))))))
+
 (deftest independent-lifecycles-test
   (let [lifecycle-a (api-middleware/make-lifecycle)
         lifecycle-b (api-middleware/make-lifecycle)
