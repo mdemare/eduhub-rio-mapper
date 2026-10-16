@@ -41,6 +41,50 @@
 (def api-routes (api/routes {:enqueuer-fn      (fn [job] (reset! last-job job) nil)
                              :status-getter-fn (constantly {:test :dummy})}))
 
+(deftest rejected-jobs-are-not-enqueued
+  (let [uuid "12345678-1234-2345-3456-123456789abc"]
+    (doseq [type ["courses" "programs" "education-specifications"]
+            action ["link" "unlink"]
+            code ["foo" "1234o4321" "12345678-1234-2345-3456-123456789abz"]]
+      (let [path (str "/job/" action "/" code "/" type
+                      (when (= action "link") (str "/" uuid)))
+            queue (atom [])
+            app (api/routes {:enqueuer-fn #(swap! queue conj %)})]
+        (testing path
+          (let [res (app (authenticated-request :post path))]
+            (is (= http-status/bad-request (:status res)))
+            (is (nil? (:job res)))
+            (is (string? (:body res))))
+          (is (empty? @queue) "rejection must not enqueue or create pending status"))))
+    (doseq [[path callback expected-body]
+            [[(str "/job/link/" uuid "/courses/not-a-uuid") nil "Invalid UUID"]
+             [(str "/job/link/" uuid "/courses/" uuid) "file:///tmp/callback" "Malformed callback url"]
+             [(str "/job/link/foo/courses/" uuid) "not-a-url" "Malformed callback url"]]]
+      (let [queue (atom [])
+            app (api/routes {:enqueuer-fn #(swap! queue conj %)})
+            req (cond-> (authenticated-request :post path)
+                  callback (assoc-in [:headers "x-callback"] callback))]
+        (testing (str path " callback=" callback)
+          (is (= {:status http-status/bad-request :body expected-body} (app req)))
+          (is (empty? @queue)))))))
+
+(deftest valid-jobs-enqueue-once
+  (let [uuid "12345678-1234-2345-3456-123456789abc"]
+    (doseq [[type code] [["courses" uuid] ["programs" uuid] ["education-specifications" "1234O4321"]]
+            action ["link" "unlink"]]
+      (let [path (str "/job/" action "/" code "/" type
+                      (when (= action "link") (str "/" uuid)))
+            queue (atom [])
+            app (api/routes {:enqueuer-fn #(swap! queue conj %)})
+            res (app (-> (authenticated-request :post path)
+                         (assoc-in [:headers "x-callback"] "https://surf.nl/")))]
+        (testing path
+          (is (= http-status/ok (:status res)))
+          (is (= 1 (count @queue)))
+          (is (uuid? (get-in res [:body :token])))
+          (is (= {:token (:token (first @queue))} (:body res)))
+          (is (= "https://surf.nl/" (::job/callback-url (first @queue)))))))))
+
 (deftest uuid-validation
   (is (= http-status/bad-request (:status (api-routes (authenticated-request :get "/status/invalid-token"))))))
 

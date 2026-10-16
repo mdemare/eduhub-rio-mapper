@@ -102,7 +102,8 @@ Mogelijke foutmeldingen bij het aanmaken van een job:
   UUID is.
 - `400 Bad Request` met `Invalid opleidingscode '...'` of `Invalid
   aangeboden opleidingcode '...'` als de rio-code van een link of
-  unlink ongeldig is.
+  unlink ongeldig is. Er wordt dan geen job in de wachtrij gezet,
+  geen jobstatus aangemaakt en geen token teruggegeven (zowel v5 als v6).
 - `400 Bad Request` met `Malformed callback url` als de `X-Callback`
   header geen geldige http(s) URL bevat.
 - `403 Forbidden` als de client niet aan een instituut gekoppeld is.
