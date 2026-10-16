@@ -54,13 +54,16 @@
 
 (defn wrap-server-status [app {:keys [server-stopping nr-active-requests]}]
   (fn [req]
-    (if @server-stopping
-      {:status http-status/service-unavailable :body "Server stopping"}
+    ;; Admission and stopping share this instance's lock, so drain cannot
+    ;; observe zero requests between the stopping check and the increment.
+    (if (locking server-stopping
+          (when-not @server-stopping
+            (swap! nr-active-requests inc)))
       (try
-        (swap! nr-active-requests inc)
         (app req)
         (finally
-          (swap! nr-active-requests dec))))))
+          (swap! nr-active-requests dec)))
+      {:status http-status/service-unavailable :body "Server stopping"})))
 
 (defn- valid-uuid? [uuid]
   (try (UUID/fromString uuid)
@@ -256,7 +259,8 @@
   "Reject new requests and wait for this instance's active requests to finish."
   [{:keys [server-stopping nr-active-requests]}]
   ;; All subsequent requests will get a 503 error
-  (reset! server-stopping true)
+  (locking server-stopping
+    (reset! server-stopping true))
   ;; Wait until all pending requests have been completed
   (loop []
     (when (< 0 @nr-active-requests)
