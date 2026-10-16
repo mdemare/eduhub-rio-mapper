@@ -21,29 +21,113 @@
             [compojure.core :refer [POST]]
             [nl.jomco.http-status-codes :as http-status]
             [nl.surf.eduhub-rio-mapper.endpoints.api-middleware :as api-middleware]
+            [nl.surf.eduhub-rio-mapper.endpoints.app-server :as app-server]
             [nl.surf.eduhub-rio-mapper.specs.rio :as rio]
             [ring.mock.request :refer [request]]))
 
 (deftest wrap-server-status-test
-  (with-redefs [api-middleware/server-stopping    (atom false)
-                api-middleware/nr-active-requests (atom 0)]
-    (let [active (atom nil)
-          app    (api-middleware/wrap-server-status
-                  (fn [_]
-                    (reset! active @api-middleware/nr-active-requests)
-                    {:status http-status/ok}))]
-      (is (= {:status http-status/ok} (app {})))
-      (is (= 1 @active) "request is counted while active")
-      (is (= 0 @api-middleware/nr-active-requests) "request is uncounted when done")
+  (let [{:keys [nr-active-requests] :as lifecycle} (api-middleware/make-lifecycle)
+        active (atom nil)
+        app    (api-middleware/wrap-server-status
+                (fn [_]
+                  (reset! active @nr-active-requests)
+                  {:status http-status/ok}) lifecycle)]
+    (is (= {:status http-status/ok} (app {})))
+    (is (= 1 @active) "request is counted while active")
+    (is (= 0 @nr-active-requests) "request is uncounted when done")
 
-      (testing "active requests are uncounted when the handler throws"
-        (is (thrown? Exception ((api-middleware/wrap-server-status (fn [_] (throw (Exception. "boom")))) {})))
-        (is (= 0 @api-middleware/nr-active-requests)))
+    (testing "active requests are uncounted when the handler throws"
+      (is (thrown? Exception ((api-middleware/wrap-server-status (fn [_] (throw (Exception. "boom"))) lifecycle) {})))
+      (is (= 0 @nr-active-requests)))
 
-      (testing "after shutdown"
-        (api-middleware/shutdown-handler)
-        (is (= {:status http-status/service-unavailable :body "Server stopping"}
-               (app {})))))))
+    (testing "after shutdown"
+      (api-middleware/shutdown-handler lifecycle)
+      (is (= {:status http-status/service-unavailable :body "Server stopping"}
+             (app {}))))))
+
+(deftest shutdown-waits-for-own-request-test
+  (let [{:keys [server-stopping] :as lifecycle} (api-middleware/make-lifecycle)
+        entered (promise)
+        release (promise)
+        stopping (promise)
+        app (api-middleware/wrap-server-status
+             (fn [_] (deliver entered true) @release :ok) lifecycle)
+        request-task (future (app {}))]
+    (add-watch server-stopping ::stopping
+               (fn [_ _ _ value] (when value (deliver stopping true))))
+    (try
+      (is (= true (deref entered 2000 :timeout)))
+      (let [drain-task (future (api-middleware/shutdown-handler lifecycle))]
+        (try
+          (is (= true (deref stopping 2000 :timeout)))
+          (is (= :pending (deref drain-task 100 :pending)))
+          (is (= {:status http-status/service-unavailable :body "Server stopping"}
+                 (app {})))
+          (deliver release true)
+          (is (= :ok (deref request-task 2000 :timeout)))
+          (is (nil? (deref drain-task 2000 :timeout)))
+          (finally (future-cancel drain-task))))
+      (finally
+        (deliver release true)
+        (future-cancel request-task)
+        (remove-watch server-stopping ::stopping)))))
+
+(deftest independent-lifecycles-test
+  (let [lifecycle-a (api-middleware/make-lifecycle)
+        lifecycle-b (api-middleware/make-lifecycle)
+        entered (promise)
+        release (promise)
+        app-a (api-middleware/wrap-server-status (constantly :ok) lifecycle-a)
+        app-b (api-middleware/wrap-server-status
+               (fn [req]
+                 (when (:block? req)
+                   (deliver entered true)
+                   @release)
+                 :ok)
+               lifecycle-b)
+        request-task (future (app-b {:block? true}))]
+    (try
+      (is (= true (deref entered 2000 :timeout)))
+      (let [drain-task (future (api-middleware/shutdown-handler lifecycle-a))]
+        (try
+          (is (nil? (deref drain-task 2000 :timeout))
+              "unrelated in-flight requests do not hold the drain open")
+          (is (= {:status http-status/service-unavailable :body "Server stopping"}
+                 (app-a {})))
+          (is (= :ok (app-b {})) "the other instance still accepts requests")
+          (is (= :ok ((api-middleware/wrap-server-status
+                       (constantly :ok) (api-middleware/make-lifecycle)) {}))
+              "a fresh instance accepts requests")
+          (finally (future-cancel drain-task))))
+      (finally
+        (deliver release true)
+        (is (= :ok (deref request-task 2000 :timeout)))
+        (future-cancel request-task)))))
+
+(deftest serve-api-lifecycle-test
+  (let [hooks (atom [])
+        apps (atom [])
+        config {:api-config {:host "localhost" :port 8080}
+                :auth-config {:introspection-endpoint "https://example.org/introspect"
+                              :client-id "test" :client-secret "test"}}
+        make-app (partial api-middleware/make-app
+                          (constantly (constantly {:status 200 :body "ok"})))]
+    (with-redefs [api-middleware/add-shutdown-hook! #(swap! hooks conj %)
+                  app-server/run-jetty (fn [app options]
+                                         (swap! apps conj app)
+                                         (is (= {:host "localhost" :port 8080 :join? false} options))
+                                         :server)]
+      (dotimes [_ 2]
+        (is (= :server (api-middleware/serve-api make-app config {:join? false})))))
+    (is (= 2 (count @hooks)))
+    ((first @hooks))
+    (is (= {:status 503 :body "Server stopping"}
+           ((first @apps) (request :get "/"))))
+    (is (= 200 (:status ((second @apps) (request :get "/")))))
+    (is (= 200 (:status ((make-app config) (request :get "/")))))
+    ((second @hooks))
+    (is (= {:status 503 :body "Server stopping"}
+           ((second @apps) (request :get "/"))))))
 
 (deftest wrap-access-control-test
   (let [private   (api-middleware/wrap-access-control-private (constantly :ok))

@@ -91,8 +91,11 @@
 (defn routes [config]
   (api-middleware/routes job-routes (merge config version-options)))
 
-(defn make-app [config]
-  (api-middleware/make-app routes config))
+(defn make-app
+  ([config]
+   (api-middleware/make-app routes config))
+  ([config lifecycle]
+   (api-middleware/make-app routes config lifecycle)))
 
 (defn serve-api [config options]
   (api-middleware/serve-api make-app config options))

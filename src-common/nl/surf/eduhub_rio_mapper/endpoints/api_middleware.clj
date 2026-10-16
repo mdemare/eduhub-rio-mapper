@@ -46,11 +46,13 @@
            [java.time Instant]
            java.util.UUID))
 
-(def server-stopping (atom false))
+(defn make-lifecycle
+  "Create request accounting and drain state for one API instance."
+  []
+  {:server-stopping (atom false)
+   :nr-active-requests (atom 0)})
 
-(def nr-active-requests (atom 0))
-
-(defn wrap-server-status [app]
+(defn wrap-server-status [app {:keys [server-stopping nr-active-requests]}]
   (fn [req]
     (if @server-stopping
       {:status http-status/service-unavailable :body "Server stopping"}
@@ -232,22 +234,27 @@
   "Build the ring app.
 
   `routes-fn` takes a map with the `:enqueuer-fn` and
-  `:status-getter-fn` and returns the routes."
-  [routes-fn {:keys [auth-config clients] :as config}]
-  (let [token-authenticator       (-> (authentication/make-token-authenticator auth-config)
-                                      (authentication/cache-token-authenticator {:ttl-minutes 10}))]
-    (-> (routes-fn {:enqueuer-fn      (partial worker/enqueue! config)
+  `:status-getter-fn` and returns the routes. Creates a fresh lifecycle unless
+  one is supplied explicitly for use with `shutdown-handler`."
+  ([routes-fn config]
+   (make-app routes-fn config (make-lifecycle)))
+  ([routes-fn {:keys [auth-config clients] :as config} lifecycle]
+   (let [token-authenticator (-> (authentication/make-token-authenticator auth-config)
+                                 (authentication/cache-token-authenticator {:ttl-minutes 10}))]
+     (-> (routes-fn {:enqueuer-fn      (partial worker/enqueue! config)
                     :status-getter-fn (partial status/rget config)})
-        (health/wrap-health config)
-        (wrap-client-info clients)
-        (authentication/wrap-authentication token-authenticator)
-        (wrap-logging)
-        (wrap-json-response)
-        (wrap-trace-context)
-        (defaults/wrap-defaults defaults/api-defaults)
-        (wrap-server-status))))
+         (health/wrap-health config)
+         (wrap-client-info clients)
+         (authentication/wrap-authentication token-authenticator)
+         (wrap-logging)
+         (wrap-json-response)
+         (wrap-trace-context)
+         (defaults/wrap-defaults defaults/api-defaults)
+         (wrap-server-status lifecycle)))))
 
-(defn shutdown-handler []
+(defn shutdown-handler
+  "Reject new requests and wait for this instance's active requests to finish."
+  [{:keys [server-stopping nr-active-requests]}]
   ;; All subsequent requests will get a 503 error
   (reset! server-stopping true)
   ;; Wait until all pending requests have been completed
@@ -256,10 +263,16 @@
       (Thread/sleep 500)
       (recur))))
 
+(defn- add-shutdown-hook! [drain]
+  (.addShutdownHook (Runtime/getRuntime) (new Thread ^Runnable drain)))
+
 (defn serve-api
-  "Start the API server; `make-app` builds the ring app from `config`."
+  "Start the API server with its own lifecycle.
+
+  `make-app` takes `config` and the lifecycle shared with the shutdown hook."
   [make-app {{:keys [^Integer port host]} :api-config :as config} options]
-  (.addShutdownHook (Runtime/getRuntime) (new Thread ^Runnable shutdown-handler))
-  (app-server/run-jetty (make-app config) (assoc options
-                                                 :host host
-                                                 :port port)))
+  (let [lifecycle (make-lifecycle)]
+    (add-shutdown-hook! #(shutdown-handler lifecycle))
+    (app-server/run-jetty (make-app config lifecycle) (assoc options
+                                                         :host host
+                                                         :port port))))
