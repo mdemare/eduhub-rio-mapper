@@ -2,15 +2,9 @@
   (:require [clojure.string :as str]
             [nl.surf.eduhub-rio-mapper.v5.rio.helper :as rio-helper-v5])
   (:import [java.time LocalDate]
-           [java.time.format DateTimeFormatter DateTimeParseException]
-           [java.util UUID]))
+           [java.time.format DateTimeFormatter DateTimeParseException]))
 
 (def date-format (DateTimeFormatter/ofPattern "uuuu-MM-dd"))
-
-(defn valid-uuid? [uuid]
-  (try (UUID/fromString uuid)
-       true
-       (catch IllegalArgumentException _ false)))
 
 (defn level-sector-map-to-rio?
   "True if we can map the given level and sector to RIO."

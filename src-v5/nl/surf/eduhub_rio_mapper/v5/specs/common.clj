@@ -20,6 +20,7 @@
   "Common specs for use in the ooapi namespaces."
   (:require [clojure.spec.alpha :as s]
             [nl.surf.eduhub-rio-mapper.re-spec :refer [looks-like-html? re-spec text-spec]]
+            [nl.surf.eduhub-rio-mapper.utils.uuid :refer [valid-uuid?]]
             [nl.surf.eduhub-rio-mapper.v5.ooapi.common.LongLanguageTypedString :as-alias LongLanguageTypedString]
             [nl.surf.eduhub-rio-mapper.v5.ooapi.enums :as enums]
             [nl.surf.eduhub-rio-mapper.v5.ooapi.LanguageTypedString :as-alias LanguageTypedString]
@@ -53,7 +54,7 @@
 
 (s/def ::uuid
   (s/and (re-spec #"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
-         ooapi-utils/valid-uuid?))
+         valid-uuid?))
 
 (s/def ::id
   ::uuid)
