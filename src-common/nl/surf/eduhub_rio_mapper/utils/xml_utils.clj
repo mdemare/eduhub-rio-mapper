@@ -18,12 +18,13 @@
 
 (ns nl.surf.eduhub-rio-mapper.utils.xml-utils
   (:import [java.io StringReader StringWriter]
-           [javax.xml.parsers DocumentBuilderFactory]
+           [javax.xml XMLConstants]
+           [javax.xml.parsers DocumentBuilder DocumentBuilderFactory]
            [javax.xml.transform Transformer TransformerFactory]
            [javax.xml.transform.dom DOMSource]
            [javax.xml.transform.stream StreamResult]
            [org.w3c.dom Document Element NodeList]
-           [org.xml.sax InputSource]))
+           [org.xml.sax EntityResolver InputSource SAXException]))
 
 (defn- do-string-writer [write]
   (-> (StringWriter.)
@@ -31,8 +32,26 @@
       (.toString)))
 
 (defn- db-factory ^DocumentBuilderFactory []
+  ;; These protections are required: let configuration failures propagate so
+  ;; an unsupported parser cannot silently fall back to unsafe parsing.
   (doto (DocumentBuilderFactory/newInstance)
-    (.setNamespaceAware true)))
+    (.setNamespaceAware true)
+    (.setFeature XMLConstants/FEATURE_SECURE_PROCESSING true)
+    (.setFeature "http://apache.org/xml/features/disallow-doctype-decl" true)
+    (.setFeature "http://xml.org/sax/features/external-general-entities" false)
+    (.setFeature "http://xml.org/sax/features/external-parameter-entities" false)
+    (.setFeature "http://apache.org/xml/features/nonvalidating/load-external-dtd" false)
+    (.setAttribute XMLConstants/ACCESS_EXTERNAL_DTD "")
+    (.setAttribute XMLConstants/ACCESS_EXTERNAL_SCHEMA "")
+    (.setXIncludeAware false)
+    (.setExpandEntityReferences false)))
+
+(defn- document-builder ^DocumentBuilder []
+  (doto (.newDocumentBuilder (db-factory))
+    (.setEntityResolver
+     (reify EntityResolver
+       (resolveEntity [_ _ _]
+         (throw (SAXException. "External XML entities are forbidden")))))))
 
 (defn- different-keys? [content]
   (when content
@@ -92,9 +111,9 @@
           sexp-element-text))
 
 (defn str->dom
-  "Parses string with XML content into org.w3c.dom.Document."
+  "Parses self-contained XML into org.w3c.dom.Document, rejecting DOCTYPEs."
   ^Document [^String xml]
-  (let [builder (.newDocumentBuilder (db-factory))
+  (let [builder (document-builder)
         doc (.parse builder (InputSource. (StringReader. xml)))]
     (.normalize (.getDocumentElement doc))
     doc))
