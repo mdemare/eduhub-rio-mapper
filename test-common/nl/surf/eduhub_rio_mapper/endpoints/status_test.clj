@@ -91,8 +91,9 @@
 (def ^:private retry-sleep-ms 300)
 
 (defn- run-callback
-  "Run the webhook callback with `responses` (status codes, or exceptions
-  to throw) and return the attempt timestamps and the finish time."
+  "Run the webhook callback and return attempt timestamps and finish time.
+
+  `responses` contains status codes or exceptions to throw."
   [responses]
   (let [responses (atom responses)
         attempts  (atom [])]
