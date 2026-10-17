@@ -22,6 +22,9 @@ jobs:
     - uses: jomco/clojure-action@4259a5767c4dac675217229f2facf927211ff76b # v1
       with: { m2-cache-key: m2-test }
 
+    - name: Check E2E command dispatch
+      run: sh dev/check-e2e.sh
+
     - name: Run tests
       env:
         CLIENTS_INFO_PATH: ${{ secrets.CLIENTS_INFO_PATH }}

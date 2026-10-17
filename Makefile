@@ -2,6 +2,13 @@
 
 all: lint proof-specs test watson clean jar
 
+.PHONY: test-v5-e2e test-v6-e2e
+
+# The suites share service ports, so run them sequentially even with make -j.
+test-e2e:
+	$(MAKE) test-v5-e2e
+	$(MAKE) test-v6-e2e
+
 jar: target/eduhub-rio-mapper-v5.jar target/eduhub-rio-mapper-v6.jar
 
 test-all-units:
