@@ -49,10 +49,14 @@ When the above has been done, tests can be run using:
 make test-e2e
 ```
 
-For "live" output run:
+This runs the v5 suite followed by the v6 suite, with live output enabled.
+If either suite fails, the command fails; a v5 failure stops before v6 runs.
+To run just one version, use `make test-v5-e2e` or `make test-v6-e2e`.
+
+To check command dispatch and failure propagation without credentials or live services:
 
 ```sh
-make test-e2e TEST_OPTS=--no-capture-output
+sh dev/check-e2e.sh
 ```
 
 For debugging set environment variable `STORE_HTTP_REQUESTS` to `true` to get extra information about the API calls done by the mapper.
