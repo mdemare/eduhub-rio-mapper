@@ -40,11 +40,6 @@ jobs:
           KEYSTORE: keystore.jks
           KEYSTORE_ALIAS: ${{ secrets.KEYSTORE_ALIAS }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          OS_AUTH_URL: ${{ secrets.OS_AUTH_URL }}
-          OS_CONTAINER_NAME: ${{ secrets.OS_CONTAINER_NAME }}
-          OS_PASSWORD: ${{ secrets.OS_PASSWORD }}
-          OS_PROJECT_NAME: ${{ secrets.OS_PROJECT_NAME }}
-          OS_USERNAME: ${{ secrets.OS_USERNAME }}
           RIO_READ_URL: ${{ secrets.RIO_READ_URL }}
           RIO_RECIPIENT_OIN: ${{ secrets.RIO_RECIPIENT_OIN }}
           RIO_RETRY_ATTEMPTS_SECONDS: '5,10,15'
