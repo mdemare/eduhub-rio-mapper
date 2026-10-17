@@ -29,8 +29,6 @@ jobs:
       - name: Check rio queue status
         env:
           CLIENTS_INFO_PATH: ${{ secrets.CLIENTS_INFO_PATH }}
-          CLIENT_ID: ${{ secrets.CLIENT_ID }}
-          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
           GATEWAY_PASSWORD_V5: ${{ secrets.GATEWAY_PASSWORD_V5 }}
           GATEWAY_ROOT_URL_V5: ${{ secrets.GATEWAY_ROOT_URL_V5 }}
           GATEWAY_USER_V5: ${{ secrets.GATEWAY_USER_V5 }}
@@ -49,7 +47,6 @@ jobs:
           SURF_CONEXT_CLIENT_ID: ${{ secrets.SURF_CONEXT_CLIENT_ID }}
           SURF_CONEXT_CLIENT_SECRET: ${{ secrets.SURF_CONEXT_CLIENT_SECRET }}
           SURF_CONEXT_INTROSPECTION_ENDPOINT: ${{ secrets.SURF_CONEXT_INTROSPECTION_ENDPOINT }}
-          TOKEN_ENDPOINT: ${{ secrets.TOKEN_ENDPOINT }}
         id: test_rio
         run: |
           set +e
