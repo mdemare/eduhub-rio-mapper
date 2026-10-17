@@ -18,31 +18,10 @@
 
 (ns nl.surf.eduhub-rio-mapper.v5.rio.aangeboden-opleiding
   (:require [clojure.string :as str]
+            [nl.surf.eduhub-rio-mapper.rio.duration :as duration]
             [nl.surf.eduhub-rio-mapper.rio.helper :as rio-helper]
             [nl.surf.eduhub-rio-mapper.v5.rio.helper :as rio-helper-v5]
-            [nl.surf.eduhub-rio-mapper.v5.utils.ooapi :as ooapi-utils])
-  (:import [java.time Period Duration]))
-
-(defn- parse-duration [duration]
-  (when duration
-    (if (str/includes? duration "T")
-      ;; If it contains a T, we treat it as a time period, and count in hours.
-      (let [d (Duration/parse duration)]
-        {:eenheid "U" :omvang (.toHours d)})
-      (let [p (Period/parse duration)
-            months (.getMonths p)]
-        (cond
-          ;; When less than a month, use days.
-          (zero? (.toTotalMonths p))
-          {:eenheid "D" :omvang (.getDays p)}
-
-          ;; Whole number of years, use years.
-          (zero? months)
-          {:eenheid "J" :omvang (.getYears p)}
-
-          ;; Otherwise use months.
-          :else
-          {:eenheid "M" :omvang (.toTotalMonths p)})))))
+            [nl.surf.eduhub-rio-mapper.v5.utils.ooapi :as ooapi-utils]))
 
 (def education-specification-type-mapping
   {"course"         "aangebodenHOOpleidingsonderdeel"
@@ -132,7 +111,7 @@
    ooapi-type]
   (let [rio-consumer (ooapi-utils/extract-rio-consumer consumers)
         sector       (:sector rio-consumer)
-        duration-map (some-> rio-consumer :duration parse-duration)
+        duration-map (some-> rio-consumer :duration duration/parse-duration)
         id           ((if (= :course ooapi-type) :courseId :programId) course-program)
         periods      (map #(assoc (ooapi-type %)
                              :validFrom (:validFrom %)
