@@ -25,6 +25,9 @@ jobs:
     - name: Check E2E command dispatch
       run: sh dev/check-e2e.sh
 
+    - name: Check Redis command dispatch
+      run: sh dev/check-redis.sh
+
     - name: Run tests
       env:
         CLIENTS_INFO_PATH: ${{ secrets.CLIENTS_INFO_PATH }}

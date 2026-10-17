@@ -9,6 +9,13 @@ test-e2e:
 	$(MAKE) test-v5-e2e
 	$(MAKE) test-v6-e2e
 
+.PHONY: test-v5-redis test-v6-redis
+
+# The suites purge shared Redis keys, so run them sequentially even with make -j.
+test-redis:
+	$(MAKE) test-v5-redis
+	$(MAKE) test-v6-redis
+
 jar: target/eduhub-rio-mapper-v5.jar target/eduhub-rio-mapper-v6.jar
 
 test-all-units:
