@@ -18,32 +18,11 @@
 
 (ns nl.surf.eduhub-rio-mapper.v6.rio.aangeboden-opleiding
   (:require [clojure.string :as str]
+            [nl.surf.eduhub-rio-mapper.rio.duration :as duration]
             [nl.surf.eduhub-rio-mapper.rio.helper :as rio-helper]
             [nl.surf.eduhub-rio-mapper.v6.rio.helper :as rio-helper-v6]
             [nl.surf.eduhub-rio-mapper.v6.specs.ooapi :as ooapi-v6]
-            [nl.surf.eduhub-rio-mapper.v6.utils.ooapi :as ooapi-utils])
-  (:import [java.time Period Duration]))
-
-(defn- parse-duration [duration]
-  (when duration
-    (if (str/includes? duration "T")
-      ;; If it contains a T, we treat it as a time period, and count in hours.
-      (let [d (Duration/parse duration)]
-        {:eenheid "U" :omvang (.toHours d)})
-      (let [p (Period/parse duration)
-            months (.getMonths p)]
-        (cond
-          ;; When less than a month, use days.
-          (zero? (.toTotalMonths p))
-          {:eenheid "D" :omvang (.getDays p)}
-
-          ;; Whole number of years, use years.
-          (zero? months)
-          {:eenheid "J" :omvang (.getYears p)}
-
-          ;; Otherwise use months.
-          :else
-          {:eenheid "M" :omvang (.toTotalMonths p)})))))
+            [nl.surf.eduhub-rio-mapper.v6.utils.ooapi :as ooapi-utils]))
 
 ;; keys are ::ooapi-v6/specification-type
 (def specification-type-mapping
@@ -157,7 +136,7 @@
   [{:keys [rioCode validFrom validTo offerings level modeOfStudy sector fieldsOfStudy consumer timelineOverrides firstStartDateTime] :as course-program}
    opleidingscode
    ooapi-type]
-  (let [duration-map (some-> consumer :duration parse-duration)
+  (let [duration-map (some-> consumer :duration duration/parse-duration)
         id           ((if (= :course ooapi-type) :courseId :programmeId) course-program)
         periods      (map #(assoc (ooapi-type %)
                                   :validFrom (:validFrom %)
