@@ -13,8 +13,8 @@
          com.velisco/strgen          {:mvn/version "0.2.5" :exclusions [org.clojure/clojurescript]}
 
          ;; http
-         ring/ring-core                 {:mvn/version "1.15.5"}
-         ring/ring-jetty-adapter        {:mvn/version "1.15.5"}
+         ring/ring-core                 {:mvn/version "1.15.6"}
+         ring/ring-jetty-adapter        {:mvn/version "1.15.6"}
          ring/ring-defaults             {:mvn/version "0.7.1"}
          compojure/compojure            {:mvn/version "1.7.2"}
          nl.jomco/ring-trace-context    {:mvn/version "0.0.8"}
