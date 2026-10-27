@@ -28,7 +28,6 @@ services:
       OTEL_TRACES_EXPORTER: none
       JAVA_TOOL_OPTIONS: -javaagent:./opentelemetry-javaagent.jar
     volumes:
-      - ./truststore.jks:/truststore.jks
       - ./keystore.jks:/keystore.jks
       - ./test/test-clients.json:/test/test-clients.json
     command: worker
@@ -51,7 +50,6 @@ services:
       API_HOSTNAME: 0.0.0.0
       API_PORT: 3000
     volumes:
-      - ./truststore.jks:/truststore.jks
       - ./keystore.jks:/keystore.jks
       - ./test/test-clients.json:/test/test-clients.json
     ports:
