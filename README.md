@@ -204,8 +204,9 @@ The `CLIENTS_INFO_PATH` should specify a json file with settings for client-id, 
 ## Docker containers
 
 The application consists of two parts: the *API* and the
-*Worker*. Both components can be started from a single docker image
-for which a [./Dockerfile](Dockerfile) is included.  The image build
+*Worker*. Both components can be started from a single docker image.
+There is a separate Dockerfile per OOAPI version:
+[Dockerfile.v5](Dockerfile.v5) and [Dockerfile.v6](Dockerfile.v6).  The image build
 is *nonroot* variant of *distroless* Debian which runs the CLI as:
 
 - *user*: `nonroot` (uid=65532)
@@ -218,8 +219,10 @@ server.
 Build the docker image with:
 
 ```sh
-docker build -t eduhub-rio-mapper .
+docker build -f Dockerfile.v6 -t eduhub-rio-mapper .
 ```
+
+(use `-f Dockerfile.v5` for the v5 mapper).
 
 To run the API server:
 
@@ -246,6 +249,32 @@ docker run \
 
 Notice that `config.env` is not included in the repo, and that the configuration files should be made
 available via a "volume" (see `-v` option).
+
+### Docker compose
+
+For local development, [docker-compose.yml](./docker-compose.yml) runs
+redis, prometheus, the API and the worker:
+
+```sh
+docker compose up --build
+```
+
+The API and worker images are built locally from `Dockerfile.v6`; set
+`OOAPI_VERSION=v5` to build from `Dockerfile.v5` instead. The images
+are built for the host's platform.
+
+The following files, which are not in git, must be present in the root
+of the project:
+
+- `.envrc`: the environment configuration (see
+  [Configuration](#configuration)), read as the `env_file` of the API
+  and worker. Lines may use the direnv `export NAME=value` form.
+  Use `KEYSTORE=/keystore.jks`; `CLIENTS_INFO_PATH`, `REDIS_URI`,
+  `API_HOSTNAME` and `API_PORT` are set by the compose file.
+- `keystore.jks`: mounted as `/keystore.jks` (see [Create
+  keystore](#create-keystore)).
+
+The truststore is included in the image (`resources/truststore.jks`).
 
 ## End to End tests
 

@@ -14,8 +14,9 @@ services:
     volumes:
       - ./dev-infra/prometheus.yml:/etc/prometheus/prometheus.yml
   worker:
-    platform: "linux/amd64"
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.${OOAPI_VERSION:-v6} # OOAPI_VERSION=v5 for the v5 mapper
     env_file:
       - .envrc # read environment from local direnv settings
     environment:
@@ -34,8 +35,9 @@ services:
     ports:
       - "9465:9464"
   api:
-    platform: "linux/amd64"
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.${OOAPI_VERSION:-v6} # OOAPI_VERSION=v5 for the v5 mapper
     env_file:
       - .envrc # read environment from local direnv settings
     environment:
