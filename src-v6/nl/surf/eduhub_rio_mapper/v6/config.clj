@@ -36,7 +36,7 @@
                                         :in [:clients-info-config :path]]
    :connection-timeout-millis          ["HTTP connection timeout in milliseconds" :int
                                         :default 10000
-                                        :in [:rio-config :connection-timeout]]
+                                        :in [:rio-config :connection-timeout-millis]]
    :gateway-user-v6                    ["OOAPI Gateway Username" :str
                                         :in [:gateway-credentials :username]]
    :gateway-password-v6                ["OOAPI Gateway Password" :str
