@@ -37,7 +37,6 @@
    [clojure.pprint :refer [pprint]]
    [clojure.string :as str]
    [clojure.test :refer :all]
-   [nl.surf.eduhub-rio-mapper.remote-entities-helper :as remote-entities]
    [nl.surf.eduhub-rio-mapper.rio.helper :as rio.helper])
   (:import
    [java.io PushbackReader]
@@ -47,8 +46,9 @@
                 :record
                 :playback))
 
+;; Code-only Raadplegen tests do not need legacy OOAPI ID mappings.
 (def vcr-mapping
-  (when (= vcr-mode :playback)
+  (delay
     (let [fixture-dir #(rio.helper/edn-read-file (str "test-" (name %) "/fixtures" "/vcr/mapping.edn"))]
       {:v5 (fixture-dir :v5)
        :v6 (fixture-dir :v6)})))
@@ -56,13 +56,15 @@
 (defn- entity-id
   "Get UUID of entity from remote-entities session."
   [name]
-  (get remote-entities/*session* name))
+  ;; Loading this namespace in record mode requires OOAPI_VERSION. Keep it
+  ;; confined to legacy tests that actually use the ObjectStore session.
+  (get @(requiring-resolve 'nl.surf.eduhub-rio-mapper.remote-entities-helper/*session*) name))
 
 (defn entity-name-to-id [n version]
   {:post [(not (empty? %))]}
   (let [id (if (= vcr-mode :record)
              (some-> n entity-id str)
-             (get (version vcr-mapping) n))]
+             (get (version @vcr-mapping) n))]
     (when (nil? id)
       (let [err (if (= vcr-mode :record)
                   "Entity name not present in remote entities"
