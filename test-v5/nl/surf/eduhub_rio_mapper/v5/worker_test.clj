@@ -18,14 +18,15 @@
 
 (ns nl.surf.eduhub-rio-mapper.v5.worker-test
   (:require [clojure.test :refer :all]
+            [nl.surf.eduhub-rio-mapper.redis-test-helper :as redis-helper]
             [nl.surf.eduhub-rio-mapper.v5.test-helper :as helper]
             [nl.surf.eduhub-rio-mapper.worker :as worker]))
 
 (def num-of-workers 50)
 
 (def config
-  {:redis-conn       {:pool {} :spec {:uri (or (System/getenv "REDIS_URI") "redis://localhost")}}
-   :redis-key-prefix "eduhub-rio-mapper-test"
+  {:redis-conn       redis-helper/redis-conn
+   :redis-key-prefix redis-helper/redis-key-prefix
    :status-ttl-sec   10
    :worker           {:nap-ms               10
                       :retry-wait-ms        10
