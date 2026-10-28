@@ -122,7 +122,7 @@ foutmelding, en `error-id` waarmee de bijbehorende logregels teruggevonden
 kunnen worden.  Bij verbindingsproblemen noemt `message` de URL die niet
 bereikt kon worden.
 
-Als de in `X-Callback` een URL van een webhook meegegeven bij het aanmaken van de job, wordt hier een `POST` op uitgevoerd zodra de job status `done`, `error` of `time-out` heeft bereikt.  Hierbij wordt de *status* meegegeven.  Als de webhook niet met een HTTP succes status antwoordt, wordt het na 30 seconden nog een keer geprobeerd.  Er worden 3 pogingen gedaan per job.
+Als de in `X-Callback` een URL van een webhook meegegeven bij het aanmaken van de job, wordt hier een `POST` op uitgevoerd zodra de job status `done`, `error` of `time-out` heeft bereikt.  Hierbij wordt de *status* meegegeven.  Als de webhook niet met een HTTP succes status antwoordt of niet bereikbaar is (bijvoorbeeld bij een verbindingsfout), wordt het na 30 seconden nog een keer geprobeerd.  Er worden maximaal 4 pogingen gedaan per job (de eerste poging plus 3 herhalingen).
 
 ### Upsert
 
