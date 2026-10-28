@@ -212,8 +212,8 @@
           (job-route request)))
 
       (compojure.core/wrap-routes wrap-callback-extractor)
-      (compojure.core/wrap-routes wrap-job-enqueuer enqueuer-fn)
       (compojure.core/wrap-routes wrap-code-validator)
+      (compojure.core/wrap-routes wrap-job-enqueuer enqueuer-fn)
       (compojure.core/wrap-routes wrap-uuid-validator)
       (compojure.core/wrap-routes wrap-access-control-private)))
 
