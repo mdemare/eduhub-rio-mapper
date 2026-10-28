@@ -57,6 +57,9 @@
 
 (def callback-retry-sleep-ms 30000)
 
+;; Number of retries after the initial webhook attempt.
+(def callback-max-retries 3)
+
 (defn- do-async-callback [config {:keys [token trace-context suppress-http-messages] :as job}]
   (let [status (rget config token)
         status (if suppress-http-messages (dissoc status :http-messages) status)
@@ -75,16 +78,17 @@
                                                       :url                    (::job/callback-url job)
                                                       :institution-schac-home (:institution-schac-home job)
                                                       :institution-name       (:institution-name job))
-                                                    (try
-                                                      (loop [retries-left 3]
-                                                        (let [status (-> req http-utils/send-http-request :status)]
-                                                          (when-not (http-status/success-status? status)
-                                                            (log/debugf "Could not reach webhook %s, %d retries left" (:url req) retries-left)
+                                                    (loop [retries-left callback-max-retries]
+                                                      (let [status (try
+                                                                     (-> req http-utils/send-http-request :status)
+                                                                     (catch Exception ex
+                                                                       (logging/log-exception ex nil)
+                                                                       nil))]
+                                                        (when-not (http-status/success-status? status)
+                                                          (log/debugf "Could not reach webhook %s, %d retries left" (:url req) retries-left)
+                                                          (when (pos? retries-left)
                                                             (Thread/sleep callback-retry-sleep-ms)
-                                                            (when (pos? retries-left)
-                                                              (recur (dec retries-left))))))
-                                                      (catch Exception ex
-                                                        (logging/log-exception ex nil))))))))
+                                                            (recur (dec retries-left)))))))))))
 
 (def final-status? #{:done :error :time-out})
 
