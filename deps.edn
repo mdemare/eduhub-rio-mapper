@@ -106,4 +106,4 @@
   :mapper-v6 {:replace-paths ["src-v6" "src-common" "resources" "test-v6" "test-common"]
               :main-opts     ["-m" "nl.surf.eduhub-rio-mapper.v6.main"]}
 
-  :deps-to-scan {:extra-deps {io.opentelemetry.javaagent/opentelemetry-javaagent ^:antq/exclude {:mvn/version "2.9.0"}}}}}
+  :deps-to-scan {:extra-deps {io.opentelemetry.javaagent/opentelemetry-javaagent ^:antq/exclude {:mvn/version "2.33.1"}}}}}
