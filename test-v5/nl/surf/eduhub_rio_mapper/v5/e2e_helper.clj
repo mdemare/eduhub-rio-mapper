@@ -344,7 +344,6 @@
 (defn job-done?
   "Final job status is 'done'."
   [job]
-  (println "XXX in JOB DONE")
   (= "done" (job-result-status job)))
 
 (defmethod test/assert-expr 'job-done? [msg form]

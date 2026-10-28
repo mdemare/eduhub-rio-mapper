@@ -21,6 +21,7 @@
             [clojure.test :refer :all]
             [clojure.walk :as walk]
             [nl.jomco.http-status-codes :as http-status]
+            [nl.surf.eduhub-rio-mapper.redis-test-helper :as redis-helper]
             [nl.surf.eduhub-rio-mapper.rio.mutation-test-helper :as mutation-helper]
             [nl.surf.eduhub-rio-mapper.specs.ooapi :as ooapi]
             [nl.surf.eduhub-rio-mapper.specs.rio :as rio]
@@ -315,8 +316,8 @@
                actual))))))
 
 (deftest ^:redis wrap-status-getter
-  (let [config      {:redis-conn       {:pool {} :spec {:uri (or (System/getenv "REDIS_URI") "redis://localhost")}}
-                     :redis-key-prefix "eduhub-rio-mapper-test"
+  (let [config      {:redis-conn       redis-helper/redis-conn
+                     :redis-key-prefix redis-helper/redis-key-prefix
                      :status-ttl-sec   10}
         app         (api/wrap-status-getter identity {:status-getter-fn (partial status/rget config)})
         status-set! (status/make-set-status-fn config)]
