@@ -320,3 +320,6 @@ Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public
 License along with this program.  If not, see
 <https://www.gnu.org/licenses/>.
+
+Read-only HoOpleiding record/playback commands and live RIO prerequisites are
+in [doc/ho-opleiding-lookup.md](doc/ho-opleiding-lookup.md).
