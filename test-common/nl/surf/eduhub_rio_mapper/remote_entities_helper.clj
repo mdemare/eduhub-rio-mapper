@@ -223,6 +223,16 @@
       v
       (throw (ex-info "OOAPI_VERSION is undefined, must be set in record mode" {})))))
 
+(def ^:dynamic *identity-overrides*
+  "Known entity identities to preserve when generating a session."
+  {})
+(def ^:dynamic *mapping-file*
+  "Optional scenario mapping destination; nil keeps the legacy record location."
+  nil)
+(def ^:dynamic *object-transform*
+  "Optional transformation of rendered objects before uploading."
+  identity)
+
 (defn make-session
   "Return a new session map of entity names to random ids.
 
@@ -237,16 +247,20 @@
 
     \"programs/some-program\" => some-other-random-uuid
 
+  Known identities in `*identity-overrides*` replace generated IDs before
+  saving the mapping or rendering any references.
+
   See also `with-session`"
   []
   (let [mapping (into {}
                       (->> (input-files)
                            (map file->key)
                            (set)
-                           (map #(vector % (UUID/randomUUID)))))]
+                           (map #(vector % (UUID/randomUUID)))))
+        mapping (merge mapping *identity-overrides*)]
     ;; In record mode, this ENV var set to true, and the mapping is written in the fixtures/vcr dir as an edn file.
-    (when (= "true" (System/getenv "VCR_RECORD"))
-      (let [file-path (str "test-" OOAPI-VERSION "/fixtures/vcr/mapping.edn")]
+    (when (or *mapping-file* (= "true" (System/getenv "VCR_RECORD")))
+      (let [file-path (or *mapping-file* (str "test-" OOAPI-VERSION "/fixtures/vcr/mapping.edn"))]
         (clojure.java.io/make-parents file-path)
         (spit file-path (prn-str (update-vals mapping str)))))
     mapping))
@@ -301,8 +315,9 @@
     ;; Sequence of strings like "/app/eduhub-mapper/test-v6/fixtures/remote-entities/courses/some.json"
     ;; location looks like: programmes/7f1567ac-a06b-47e7-9641-a9dc1451659a or programmes/8e54eca4-4096-48df-8735-6b41d114fd13/programme-offerings
     (map (fn [f]
-           {:path (object-location f session)
-            :body (object-content f session)})
+           (*object-transform*
+            {:path (object-location f session)
+             :body (object-content f session)}))
          i)))
 
 (defn- put-session
