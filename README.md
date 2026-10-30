@@ -276,6 +276,19 @@ of the project:
 
 The truststore is included in the image (`resources/truststore.jks`).
 
+## Offline playback tests
+
+Run `make playback-v5` and `make playback-v6` with `VCR_RECORD` unset (or
+`false`) to replay the committed legacy HTTP cassettes. No gateway, RIO,
+SURFconext or ObjectStore credentials are required. Playback ignores application
+environment settings and uses `test/test-clients.json`, the public
+`test/keystore.jks`, dummy credentials, and service URLs matching the cassettes.
+The settings live in `test-common/nl/surf/eduhub_rio_mapper/playback_config.clj`.
+
+`make record-v5` / `make record-v6` explicitly enable live recording and require
+live configuration. Configuration validation errors throw exceptions with the
+invalid option names, so test runners can report errors and finish their summary.
+
 ## End to End tests
 
 See [doc/e2e.md](./doc/e2e.md).

@@ -21,7 +21,7 @@
    [clojure.data.json :as json]
    [clojure.java.io :as io]
    [clojure.test :refer :all]
-   [environ.core :refer [env]]
+   [nl.surf.eduhub-rio-mapper.playback-config :as playback-config]
    [nl.surf.eduhub-rio-mapper.specs.ooapi :as-alias ooapi]
    [nl.surf.eduhub-rio-mapper.specs.rio :as-alias rio]
    [nl.surf.eduhub-rio-mapper.v6.config :as config]
@@ -79,10 +79,7 @@
   (wait-while-predicate #(not= % expected) val-atom max-sec)
   (is (= expected @val-atom)))
 
-;; The truststore used for unit tests has a different password than the official password.
-;; The truststore (as opposed to the keystore) does not contain sensitive or private data.
-(defn make-test-config []
-  (config/make-config (assoc env :keystore "test/keystore.jks"
-                             :keystore-password "xxxxxx"
-                             :truststore-password "xxxxxx"
-                             :keystore-alias "test-surf")))
+(defn make-test-config
+  "Deterministic offline configuration; live recording uses config/make-config."
+  []
+  (config/make-config playback-config/environment))

@@ -76,3 +76,12 @@
              :keystore-password-file path}]
     (spit path "repelsteeltje!")
     (is (thrown? ExceptionInfo (test-env env)))))
+
+(deftest configuration-errors-are-exceptions
+  (let [error (try
+                (config/make-config {})
+                (catch ExceptionInfo e e))]
+    (is (instance? ExceptionInfo error))
+    (is (re-find #"Configuration error" (ex-message error)))
+    (is (re-find #"CLIENTS_INFO_PATH" (ex-message error)))
+    (is (= "missing" (:clients-info-path (:errors (ex-data error)))))))
