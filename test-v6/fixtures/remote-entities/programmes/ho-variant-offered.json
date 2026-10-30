@@ -1,0 +1,135 @@
+{
+  "description": [
+    {
+      "language": "en-GB",
+      "value": "EN TRANSLATION: The excursion is part of the MSc MADE programme, students will learn about the chemistry of the course. If possible, a visit of one week. More recently attention is paid to: 1. In less developed countries, livestock production should not only the 'end' of the course by contacting the course coordinator prior to registration.The innovator's course enables students to appreciate the relevance of our course)."
+    },
+    {
+      "language": "nl-NL",
+      "value": "NL VERTALING: The excursion is part of the MSc MADE programme, students will learn about the chemistry of the course. If possible, a visit of one week. More recently attention is paid to: 1. In less developed countries, livestock production should not only the 'end' of the course by contacting the course coordinator prior to registration.The innovator's course enables students to appreciate the relevance of our course)."
+    }
+  ],
+  "validFrom": "2018-10-18",
+  "addresses": [
+    {
+      "countryCode": {
+        "iso3166-1-alpha2": "NL",
+        "iso3166-1-alpha3": "NLD",
+        "iso3166-2": "BQ-BO",
+        "iso3166-3": "ANHH"
+      },
+      "city": "Morra",
+      "geoLocation": {
+        "longitude": 88,
+        "latitude": 0
+      },
+      "addressType": "teaching",
+      "streetNumber": "23",
+      "postalCode": "4184QU",
+      "street": "Tollenslaan"
+    }
+  ],
+  "enrollment": [
+    {
+      "language": "en-GB",
+      "value": "EN TRANSLATION: . . ."
+    },
+    {
+      "language": "nl-NL",
+      "value": "NL VERTALING: . . ."
+    }
+  ],
+  "modesOfDelivery": [
+    "presential",
+    "online",
+    "hybrid",
+    "online"
+  ],
+  "studyLoad": [
+    {
+      "value": 155,
+      "studyLoadUnit": "ects"
+    }
+  ],
+  "fieldsOfStudy": "0612",
+  "name": [
+    {
+      "language": "en-GB",
+      "value": "EN TRANSLATION: Talenonderwijs en Communicatie"
+    },
+    {
+      "language": "nl-NL",
+      "value": "NL VERTALING: Talenonderwijs en Communicatie"
+    }
+  ],
+  "primaryCode": {
+    "codeType": "crohoCreboCode",
+    "code": "60740"
+  },
+  "duration": "P1DT30H4S",
+  "organization": "6fd6c513-5a3c-cac7-99a4-d73001b99497",
+  "assessment": [
+    {
+      "language": "en-GB",
+      "value": "EN TRANSLATION: Als groep: 1. For both, a minimum of 4 individual assignments: 30%;- the grade for the three course elements is as follows:Individual assignment: 15%;Group assignment: 35%;Written exam: 50%;Tutorial assignments: pass/fail. ."
+    },
+    {
+      "language": "nl-NL",
+      "value": "NL VERTALING: Als groep: 1. For both, a minimum of 4 individual assignments: 30%;- the grade for the three course elements is as follows:Individual assignment: 15%;Group assignment: 35%;Written exam: 50%;Tutorial assignments: pass/fail. ."
+    }
+  ],
+  "modeOfStudy": "dual_training",
+  "teachingLanguages": ["eng"],
+  "level": "nt2-2",
+  "levelOfQualification": "2",
+  "firstStartDateTime": "2020-01-31T08:30:00+01:00",
+  "qualificationAwarded": "Phd",
+  "link": "https://universiteit-van-morra.nl/programs/{{programmes/ho-variant-offered}}",
+  "otherCodes": [
+    {
+      "codeType": "crohoCreboCode",
+      "code": "60740"
+    }
+  ],
+  "validTo": "2021-12-18",
+  "admissionRequirements": [
+    {
+      "language": "en-GB",
+      "value": "EN TRANSLATION: BCT-22803 Physical Transport Phenomena in Water Technology; and XWT-23805 Transport Phenomena in Water Technology, XWT30305 Biological Water Treatment and Recovery Technology, XWT34305 Multi-component Mass Transfer in Membrane Processes. . BPE-10305/12806 (Bio)Process Engineering Basics BT; PCC-12303 General Chemistry 1; ORC-12903 Organic Chemistry 1; MAT-14903 Mathematics 2."
+    },
+    {
+      "language": "nl-NL",
+      "value": "NL VERTALING: BCT-22803 Physical Transport Phenomena in Water Technology; and XWT-23805 Transport Phenomena in Water Technology, XWT30305 Biological Water Treatment and Recovery Technology, XWT34305 Multi-component Mass Transfer in Membrane Processes. . BPE-10305/12806 (Bio)Process Engineering Basics BT; PCC-12303 General Chemistry 1; ORC-12903 Organic Chemistry 1; MAT-14903 Mathematics 2."
+    }
+  ],
+  "resources": [
+    "Lelieveldt, H. Course guide. Sage.Miles, M.",
+    "- lecture hand-outs and additional book chapters will be available online. Sage. Mourato (2006).",
+    "B. Practical manual Soil Pollution and Soil Protection. ."
+  ],
+  "abbreviation": "TEC",
+  "qualificationRequirements": [
+    {
+      "language": "en-GB",
+      "value": "EN TRANSLATION: Basic mathematics, thermodynamics (chemical potential), physical transport phenomena (continuity equations). . ."
+    },
+    {
+      "language": "nl-NL",
+      "value": "NL VERTALING: Basic mathematics, thermodynamics (chemical potential), physical transport phenomena (continuity equations). . ."
+    }
+  ],
+  "consumer": {
+    "educationOffererCode": "110A133",
+    "acceleratedRoute": "no_accelerated_route",
+    "consumerKey": "rio",
+    "requirementsActivities": "requirements",
+    "studyChoiceCheck": "no_study_choice_check",
+    "deficiency": "deficiencies",
+    "educationLocationCode": "107X215",
+    "propaedeuticPhase": "no_propaedeutic_phase",
+    "specificationId": "{{programmes/specification-ho-variant-child}}",
+    "sector": "secondary_vocational_education"
+  },
+  "programmeId": "{{programmes/ho-variant-offered}}",
+  "programmeType": "programme"
+}

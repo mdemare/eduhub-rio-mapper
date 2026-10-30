@@ -1,0 +1,77 @@
+{
+  "description": [
+    {
+      "language": "en-GB",
+      "value": "EN TRANSLATION: There is a 12 credits course which offers student the opportunity to experience in the domain will be paid to the depletion of fossil resources to biomass resources for energy, raw materials and tree form. The course addresses the question if and how this relates to material struggles over natural resources and its relationship to economic and technological domains;- solving optimization problems is climate change. Within a theoretical stance to support making conscious study and career choices."
+    },
+    {
+      "language": "nl-NL",
+      "value": "NL VERTALING: There is a 12 credits course which offers student the opportunity to experience in the domain will be paid to the depletion of fossil resources to biomass resources for energy, raw materials and tree form. The course addresses the question if and how this relates to material struggles over natural resources and its relationship to economic and technological domains;- solving optimization problems is climate change. Within a theoretical stance to support making conscious study and career choices."
+    }
+  ],
+  "validFrom": "1950-09-20",
+  "children": [
+    "{{education-specifications/ho-variant-child}}"
+  ],
+  "studyLoad": {
+    "value": 93,
+    "studyLoadUnit": "sbu"
+  },
+  "fieldsOfStudy": "0912",
+  "name": [
+    {
+      "language": "en-GB",
+      "value": "EN TRANSLATION: Toetsdeskundige"
+    },
+    {
+      "language": "nl-NL",
+      "value": "NL VERTALING: Toetsdeskundige"
+    }
+  ],
+  "sector": "higher professional education",
+  "primaryCode": {
+    "codeType": "identifier",
+    "code": "{{education-specifications/ho-variant-parent}}"
+  },
+  "organization": "c388522c-ebc1-2889-1899-06a89e4f5091",
+  "level": "bachelor",
+  "levelOfQualification": "6",
+  "consumers": [
+    {
+      "consumerKey": "rio",
+      "category": [
+        "business_and_project_support",
+        "language_and_culture",
+        "technology_and_ict"
+      ]
+    }
+  ],
+  "link": "https://universiteit-van-boxtel.nl/education-specifications/{{education-specifications/ho-variant-parent}}",
+  "validTo": "2060-08-28",
+  "learningOutcomes": [
+    [
+      {
+        "language": "en-GB",
+        "value": "EN TRANSLATION: nieuwe inzichten over het opdoen van kennis in een complexe wereld"
+      },
+      {
+        "language": "nl-NL",
+        "value": "NL VERTALING: nieuwe inzichten over het opdoen van kennis in een complexe wereld"
+      }
+    ],
+    [
+      {
+        "language": "en-GB",
+        "value": "EN TRANSLATION: nieuw talent op het gebied van programmeren"
+      },
+      {
+        "language": "nl-NL",
+        "value": "NL VERTALING: nieuw talent op het gebied van programmeren"
+      }
+    ]
+  ],
+  "abbreviation": "1T",
+  "formalDocument": "diploma",
+  "educationSpecificationId": "{{education-specifications/ho-variant-parent}}",
+  "educationSpecificationType": "program"
+}

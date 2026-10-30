@@ -1,4 +1,4 @@
-.PHONY: all jar lint proof-specs test test-rio test-all-units test-redis test-e2e test-v5 record-v5 record-v6 test-v6 test-common create-common-test watson antq clean
+.PHONY: all jar lint proof-specs test test-rio test-all-units test-redis test-e2e test-v5 playback-v5 playback-v6 record-v5 record-v6 test-v6 test-common create-common-test watson antq clean
 
 all: lint proof-specs test watson clean jar
 
@@ -32,11 +32,10 @@ test-v5-e2e:
 	clojure -M:test-v5 v5-e2e --no-capture-output
 
 playback-v5:
-	clojure -M:test-v5 v5-vcr
+	VCR_RECORD=false clojure -M:test-v5 v5-vcr
 
 record-v5:
-	rm -rf test-v5/fixtures/vcr/*
-	OOAPI_VERSION=v5 VCR_RECORD=true clojure -M:test-v5 v5-vcr
+	OOAPI_VERSION=v5 VCR_RECORD=true clojure -M:test-v5 ho-variant-v5
 
 test-v6: test-common
 	clojure -M:test-v6 v6
@@ -48,11 +47,10 @@ test-v6-e2e:
 	clojure -M:test-v6 v6-e2e --no-capture-output
 
 playback-v6:
-	clojure -M:test-v6 v6-vcr
+	VCR_RECORD=false clojure -M:test-v6 v6-vcr
 
 record-v6:
-	rm -rf test-v6/fixtures/vcr/*
-	OOAPI_VERSION=v6 VCR_RECORD=true clojure -M:test-v6 v6-vcr
+	OOAPI_VERSION=v6 VCR_RECORD=true clojure -M:test-v6 ho-variant-v6
 
 test-common:
 	clojure -M:test-common  common
@@ -104,3 +102,11 @@ record-ho-opleiding-v6:
 
 playback-ho-opleiding-v6:
 	VCR_RECORD=false clojure -M:test-v6 ho-opleiding-v6
+
+.PHONY: playback-ho-variant-v5 playback-ho-variant-v6
+
+playback-ho-variant-v5:
+	VCR_RECORD=false clojure -M:test-v5 ho-variant-v5
+
+playback-ho-variant-v6:
+	VCR_RECORD=false clojure -M:test-v6 ho-variant-v6

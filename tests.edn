@@ -2,6 +2,13 @@
 {:tests [{:id         :common
           :test-paths ["test-common"]}
 
+         {:id :ho-variant-v5
+          :test-paths ["test-v5"]
+          :ns-patterns ["^nl\\.surf\\.eduhub-rio-mapper\\.v5\\.ho-opleiding-variant-test$"]}
+         {:id :ho-variant-v6
+          :test-paths ["test-v6"]
+          :ns-patterns ["^nl\\.surf\\.eduhub-rio-mapper\\.v6\\.ho-opleiding-variant-test$"]}
+
          {:id :ho-opleiding-v5
           :test-paths ["test-v5"]
           :ns-patterns ["^nl\\.surf\\.eduhub-rio-mapper\\.v5\\.ho-opleiding-lookup-test$"]}
@@ -11,7 +18,7 @@
 
          {:id                      :v5
           :test-paths              ["test-v5"]
-          :kaocha.filter/skip-meta [:redis :v5-e2e :ho-opleiding-lookup]}
+          :kaocha.filter/skip-meta [:redis :v5-e2e :ho-opleiding-lookup :ho-opleiding-variant]}
        
          {:id                       :v5-redis
           :test-paths               ["test-v5"]
@@ -25,7 +32,7 @@
 
          {:id                      :v6
           :test-paths              ["test-v6" ]
-          :kaocha.filter/skip-meta [:redis :v6-e2e :ho-opleiding-lookup]}
+          :kaocha.filter/skip-meta [:redis :v6-e2e :ho-opleiding-lookup :ho-opleiding-variant]}
          {:id                       :v6-redis
           :test-paths               ["test-v6"]
           :kaocha.filter/focus-meta [:redis]}
