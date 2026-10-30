@@ -1,0 +1,54 @@
+{
+  "description": [
+    {
+      "language": "en-GB",
+      "value": "EN TRANSLATION: terrestrial systems. Examples include vegetation patterning, and dispersal by organisms, both at the global hydrological cycle contained in different watersheds in Valencia. The 4th semester revolves around two commonly asked questions: i) how can science inform the design tools."
+    },
+    {
+      "language": "nl-NL",
+      "value": "NL VERTALING: terrestrial systems. Examples include vegetation patterning, and dispersal by organisms, both at the global hydrological cycle contained in different watersheds in Valencia. The 4th semester revolves around two commonly asked questions: i) how can science inform the design tools."
+    }
+  ],
+  "validFrom": "2016-12-16",
+  "studyLoad": [
+    {
+      "value": 128,
+      "studyLoadUnit": "ects"
+    }
+  ],
+  "fieldsOfStudy": "0612",
+  "name": [
+    {
+      "language": "en-GB",
+      "value": "EN TRANSLATION: Orthopedische Technologie"
+    },
+    {
+      "language": "nl-NL",
+      "value": "NL VERTALING: Orthopedische Technologie"
+    }
+  ],
+  "primaryCode": {
+    "codeType": "identifier",
+    "code": "{{programmes/specification-ho-variant-child}}"
+  },
+  "organization": "c388522c-ebc1-2889-1899-06a89e4f5091",
+  "level": "bachelor",
+  "levelOfQualification": "6",
+  "link": "https://universiteit-van-boxtel.nl/programmes/{{programmes/specification-ho-variant-child}}",
+  "validTo": "2025-04-25",
+  "abbreviation": "OT",
+  "formalDocument": "diploma",
+  "programmeId": "{{programmes/specification-ho-variant-child}}",
+  "programmeType": "specification",
+  "consumer": {
+    "consumerKey": "rio",
+    "variantOf": "{{programmes/specification-ho-variant-parent}}",
+    "category": [
+      "agriculture_food_and_natural_environment",
+      "healthcare_and_sport",
+      "tourism_hospitality_and_recreation"
+    ],
+    "specificationType": "variant",
+    "sector": "higher_professional_education"
+  }
+}
