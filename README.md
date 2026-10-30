@@ -278,6 +278,14 @@ The truststore is included in the image (`resources/truststore.jks`).
 
 ## Automated checks
 
+Checks require Java and Python 3. Make uses an installed Clojure CLI when
+available; otherwise `dev/clojure` downloads CLI 1.12.4.1618, verifies its
+pinned SHA-256, and installs it under
+`${XDG_CACHE_HOME:-$HOME/.cache}/eduhub-rio-mapper/clojure`. This Linux bootstrap
+requires Bash, curl, tar, sha256sum, and flock, and needs network access only
+for its first installation and uncached dependencies. Set `CLOJURE=/path/to/clojure`
+to select a CLI explicitly.
+
 Run `make check` once for each ticket. It runs the Makefile regression tests,
 lint, and common/v5/v6 unit tests within the per-ticket time budget. VCR
 interaction playback, the common namespace dependency-isolation test, Redis

@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Bootstrap the pinned Clojure CLI when Make cannot find an installed CLI.
+set -euo pipefail
+
+version=1.12.4.1618
+checksum=13769da6d63a98deb2024378ae1a64e4ee211ac1035340dfca7a6944c41cde21
+cache_root="${XDG_CACHE_HOME:-$HOME/.cache}/eduhub-rio-mapper/clojure"
+prefix="$cache_root/$version"
+
+if [[ ! -x "$prefix/bin/clojure" ]]; then
+    mkdir -p "$cache_root"
+    # Parallel Make invocations must not observe an incomplete installation.
+    exec 9>"$cache_root/bootstrap.lock"
+    flock 9
+    if [[ ! -x "$prefix/bin/clojure" ]]; then
+        bootstrap_tmp=$(mktemp -d "$cache_root/.install.XXXXXX")
+        trap 'rm -rf "$bootstrap_tmp"' EXIT
+        archive="$bootstrap_tmp/clojure-tools.tar.gz"
+        curl --fail --location --silent --show-error \
+            "https://github.com/clojure/brew-install/releases/download/$version/clojure-tools-$version.tar.gz" \
+            --output "$archive"
+        if ! printf '%s  %s\n' "$checksum" "$archive" | sha256sum --check --status; then
+            printf 'Clojure CLI download failed SHA-256 verification\n' >&2
+            exit 1
+        fi
+        tar xzf "$archive" -C "$bootstrap_tmp"
+        install_root="$bootstrap_tmp/install"
+        mkdir -p "$install_root/bin" "$install_root/lib/clojure/libexec"
+        cp "$bootstrap_tmp/clojure-tools/"{deps.edn,example-deps.edn,tools.edn} "$install_root/lib/clojure/"
+        cp "$bootstrap_tmp/clojure-tools/exec.jar" \
+            "$bootstrap_tmp/clojure-tools/clojure-tools-$version.jar" "$install_root/lib/clojure/libexec/"
+        python3 - "$bootstrap_tmp/clojure-tools/clojure" "$install_root/bin/clojure" "$prefix/lib/clojure" <<'PY'
+from pathlib import Path
+import shlex
+import sys
+
+source, target, prefix = sys.argv[1:]
+Path(target).write_text(Path(source).read_text().replace('PREFIX', shlex.quote(prefix)))
+PY
+        chmod +x "$install_root/bin/clojure"
+        mv "$install_root" "$prefix"
+        rm -rf "$bootstrap_tmp"
+        trap - EXIT
+    fi
+    flock -u 9
+    exec 9>&-
+fi
+
+# CLI tests can start child Clojure processes using their ordinary command name.
+export PATH="$prefix/bin:$PATH"
+exec "$prefix/bin/clojure" "$@"

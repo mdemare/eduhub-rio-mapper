@@ -43,7 +43,7 @@ class MakefileTest(unittest.TestCase):
         self.env = dict(os.environ, PATH=str(self.work / 'bin') + os.pathsep + os.environ['PATH'],
                         COMMAND_LOG=str(self.log), VCR_RECORD='true')
         # Do not inherit make's flags/jobserver or unrelated injection settings.
-        for name in ['MAKEFLAGS', 'MFLAGS', 'MAKEOVERRIDES', 'FAIL_COMMAND']:
+        for name in ['MAKEFLAGS', 'MFLAGS', 'MAKEOVERRIDES', 'FAIL_COMMAND', 'CLOJURE']:
             self.env.pop(name, None)
         for name in ['clojure', 'python3']:
             script = self.work / 'bin' / name
@@ -73,6 +73,30 @@ command_text=$(printf '%s\\n' "$command_name" "$@")
         return result, records
 
     def test_check_runs_only_fast_checks(self):
+        result, records = self.run_make('check')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual([record[0] for record in records], FAST)
+
+    def test_check_uses_cached_bootstrap_when_cli_is_missing(self):
+        cache = self.work / 'cache'
+        cli = cache / 'eduhub-rio-mapper/clojure/1.12.4.1618/bin/clojure'
+        cli.parent.mkdir(parents=True)
+        shutil.copy(self.work / 'bin/clojure', cli)
+        (self.work / 'bin/clojure').unlink()
+        (self.work / 'dev').mkdir()
+        shutil.copy(ROOT / 'dev/clojure', self.work / 'dev/clojure')
+        for name in ['make', 'find', 'bash']:
+            (self.work / 'bin' / name).symlink_to(shutil.which(name))
+        self.env.update(PATH=str(self.work / 'bin'), XDG_CACHE_HOME=str(cache))
+        result, records = self.run_make('check')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual([record[0] for record in records], FAST)
+
+    def test_explicit_cli_path_can_contain_spaces(self):
+        cli = self.work / 'custom tools' / 'clojure'
+        cli.parent.mkdir()
+        shutil.copy(self.work / 'bin/clojure', cli)
+        self.env['CLOJURE'] = str(cli)
         result, records = self.run_make('check')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual([record[0] for record in records], FAST)
