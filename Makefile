@@ -89,3 +89,18 @@ target/eduhub-rio-mapper-v6.jar: $(shell find src-v6 src-common resources -type 
 	mkdir -p target/classes-v6
 	clojure -M:v6 -e "(binding [*compile-path* \"target/classes-v6\"] (compile 'nl.surf.eduhub-rio-mapper.v6.main))"
 	clojure -M:uberjar --aliases v6:package-v6 --main-class nl.surf.eduhub_rio_mapper.v6.main --target $@
+
+# Read-only lookup recordings live outside the legacy VCR tree.
+.PHONY: record-ho-opleiding-v5 playback-ho-opleiding-v5 record-ho-opleiding-v6 playback-ho-opleiding-v6
+
+record-ho-opleiding-v5:
+	VCR_RECORD=true clojure -M:test-v5 ho-opleiding-v5
+
+playback-ho-opleiding-v5:
+	VCR_RECORD=false clojure -M:test-v5 ho-opleiding-v5
+
+record-ho-opleiding-v6:
+	VCR_RECORD=true clojure -M:test-v6 ho-opleiding-v6
+
+playback-ho-opleiding-v6:
+	VCR_RECORD=false clojure -M:test-v6 ho-opleiding-v6
