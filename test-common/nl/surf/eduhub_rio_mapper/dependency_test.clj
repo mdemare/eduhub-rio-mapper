@@ -29,6 +29,6 @@
   (doseq [file (find-clojure-files)]
     (require (file->namespace file))))
 
-(deftest ^:common common-has-no-v5-deps
+(deftest ^{:common true :slow true} common-has-no-v5-deps
   (load-all-common-namespaces!)
   (is true "Common code successfully loaded without v5 dependencies"))

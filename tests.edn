@@ -1,6 +1,11 @@
 #kaocha/v1
 {:tests [{:id         :common
-          :test-paths ["test-common"]}
+          :test-paths ["test-common"]
+          :kaocha.filter/skip-meta [:slow]}
+
+         {:id :common-slow
+          :test-paths ["test-common"]
+          :kaocha.filter/focus-meta [:slow]}
 
          {:id :ho-opleiding-v5
           :test-paths ["test-v5"]
@@ -11,7 +16,7 @@
 
          {:id                      :v5
           :test-paths              ["test-v5"]
-          :kaocha.filter/skip-meta [:redis :v5-e2e :ho-opleiding-lookup]}
+          :kaocha.filter/skip-meta [:redis :v5-e2e :ho-opleiding-lookup :vcr]}
        
          {:id                       :v5-redis
           :test-paths               ["test-v5"]
@@ -25,7 +30,7 @@
 
          {:id                      :v6
           :test-paths              ["test-v6" ]
-          :kaocha.filter/skip-meta [:redis :v6-e2e :ho-opleiding-lookup]}
+          :kaocha.filter/skip-meta [:redis :v6-e2e :ho-opleiding-lookup :vcr]}
          {:id                       :v6-redis
           :test-paths               ["test-v6"]
           :kaocha.filter/focus-meta [:redis]}

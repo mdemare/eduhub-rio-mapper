@@ -32,7 +32,7 @@
 ;;; TODO dryrun-test should allow recording, but that means inserting entities into RIO first.
 ;;; For the time being, we'll use playback-only.
 
-(deftest dryrun-test
+(deftest ^:vcr dryrun-test
   (let [vcr    (vcr.helper/make-vcr)
         config (helper/make-test-config)
         client-info (clients-info/client-info (:clients config) "rio-mapper-dev.jomco.nl")

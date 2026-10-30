@@ -276,6 +276,28 @@ of the project:
 
 The truststore is included in the image (`resources/truststore.jks`).
 
+## Automated checks
+
+Run `make check` once for each ticket. It runs the Makefile regression tests,
+lint, and common/v5/v6 unit tests within the per-ticket time budget. VCR
+interaction playback, the common namespace dependency-isolation test, Redis
+tests (including worker retries), spec proofs,
+live end-to-end tests, dependency checks, and jar compilation belong to
+`make full-check`, which includes `check` and has no time budget. Both targets
+return a nonzero exit status when any check fails.
+
+Consider `make full-check` daily, after at least ten new commits since the
+last full check. This is a scheduling policy; an explicit invocation always
+runs, including repeated invocations on the same commit.
+
+Full checks require Python 3, the Clojure CLI, a local Redis server (or
+`REDIS_URI`), network access for dependency checks, and the live test
+configuration described in [doc/e2e.md](doc/e2e.md). VCR playback runs separately
+from the fast unit suites to preserve interaction coverage. The isolated
+HoOpleiding playback suites also run; until their genuine recordings are
+available (oe-212), they intentionally fail for missing fixtures. See
+[doc/ho-opleiding-lookup.md](doc/ho-opleiding-lookup.md).
+
 ## End to End tests
 
 See [doc/e2e.md](./doc/e2e.md).

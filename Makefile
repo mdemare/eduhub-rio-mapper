@@ -1,4 +1,23 @@
-.PHONY: all jar lint proof-specs test test-rio test-all-units test-redis test-e2e test-v5 record-v5 record-v6 test-v6 test-common create-common-test watson antq clean
+.DEFAULT_GOAL := all
+
+.PHONY: check full-check test-build test-common-slow test-redis test-e2e playback-v5 playback-v6 \
+        test-v5-redis test-v6-redis test-v5-e2e test-v6-e2e all jar lint proof-specs \
+        test test-rio test-all-units test-v5 record-v5 record-v6 test-v6 test-common \
+        create-common-test watson antq clean
+
+# Per-ticket checks stay small; slow suites belong to full-check.
+check: test-build lint test
+
+# Always run when explicitly requested, without a time limit or commit-count gate.
+full-check: check test-common-slow proof-specs playback-v5 playback-v6 test-redis \
+            playback-ho-opleiding-v5 playback-ho-opleiding-v6 test-e2e watson antq jar
+
+test-build:
+	python3 -m unittest discover -s test -p 'test_*.py'
+
+test-redis: test-v5-redis test-v6-redis
+
+test-e2e: test-v5-e2e test-v6-e2e
 
 all: lint proof-specs test watson clean jar
 
@@ -32,7 +51,7 @@ test-v5-e2e:
 	clojure -M:test-v5 v5-e2e --no-capture-output
 
 playback-v5:
-	clojure -M:test-v5 v5-vcr
+	VCR_RECORD=false clojure -M:test-v5 v5-vcr
 
 record-v5:
 	rm -rf test-v5/fixtures/vcr/*
@@ -48,11 +67,14 @@ test-v6-e2e:
 	clojure -M:test-v6 v6-e2e --no-capture-output
 
 playback-v6:
-	clojure -M:test-v6 v6-vcr
+	VCR_RECORD=false clojure -M:test-v6 v6-vcr
 
 record-v6:
 	rm -rf test-v6/fixtures/vcr/*
 	OOAPI_VERSION=v6 VCR_RECORD=true clojure -M:test-v6 v6-vcr
+
+test-common-slow:
+	clojure -M:test-common common-slow
 
 test-common:
 	clojure -M:test-common  common
