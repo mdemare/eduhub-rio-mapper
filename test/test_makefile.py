@@ -125,6 +125,16 @@ sys.exit(23 if command == os.environ.get("FAIL_COMMAND") else 0)
         self.assertEqual(["clojure -M:test-common common", "clojure -M:test-v5 v5",
                           "clojure -M:test-v6 v6"], [command for command, _ in calls])
 
+    def test_link_and_dry_run_playback_are_in_full_check(self):
+        # These were previously untagged, so fast checks invoked playback
+        # configuration and exited the JVM before Kaocha could finish.
+        for version in ("v5", "v6"):
+            for filename, test_name in (("link_test.clj", "link-test"),
+                                        ("dry_run_test.clj", "dryrun-test")):
+                with self.subTest(version=version, test=test_name):
+                    source = ROOT / f"test-{version}/nl/surf/eduhub_rio_mapper/{version}" / filename
+                    self.assertRegex(source.read_text(), rf"\(deftest\s+\^:vcr\s+{test_name}\s")
+
 
 if __name__ == "__main__":
     unittest.main()

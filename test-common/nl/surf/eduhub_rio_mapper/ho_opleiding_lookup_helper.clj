@@ -22,12 +22,12 @@
    [clojure.string :as str]
    [clojure.test :refer [is]]
    [nl.surf.eduhub-rio-mapper.clients-info :as clients-info]
+   [nl.surf.eduhub-rio-mapper.ho-opleiding-lookup-vcr-helper :as vcr]
    [nl.surf.eduhub-rio-mapper.rio.loader :as loader]
    [nl.surf.eduhub-rio-mapper.specs.rio :as-alias rio]
    [nl.surf.eduhub-rio-mapper.utils.http-utils :as http-utils]
    [nl.surf.eduhub-rio-mapper.utils.keystore :as keystore]
-   [nl.surf.eduhub-rio-mapper.utils.xml-utils :as xml]
-   [nl.surf.eduhub-rio-mapper.ho-opleiding-lookup-vcr-helper :as vcr])
+   [nl.surf.eduhub-rio-mapper.utils.xml-utils :as xml])
   (:import [org.w3c.dom Element Node]))
 
 (def rio-code "1001O3338")

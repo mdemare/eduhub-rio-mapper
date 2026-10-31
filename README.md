@@ -36,7 +36,21 @@ fail. A direct invocation always runs the checks; the cadence is a policy for
 the caller, not a condition that skips validation.
 
 Both commands require Python 3, Java and the Clojure CLI, plus the existing
-test configuration. For `full-check`, start Redis and configure the live test
+test configuration. Verify the CLI with `clojure -Sdescribe` before running
+checks. On Linux, it can be installed without root access:
+
+```sh
+(
+  cd "$(mktemp -d)"
+  curl --fail --location --output install-clojure.sh \
+    https://download.clojure.org/install/linux-install-1.12.0.1530.sh
+  bash install-clojure.sh --prefix "$HOME/.local"
+)
+export PATH="$HOME/.local/bin:$PATH"
+clojure -Sdescribe
+```
+
+For `full-check`, start Redis and configure the live test
 credentials and services described in [doc/e2e.md](doc/e2e.md). Live tests
 modify test data in those services. Recorded interactions always run in
 playback mode, even if `VCR_RECORD=true` is set in the calling environment.
