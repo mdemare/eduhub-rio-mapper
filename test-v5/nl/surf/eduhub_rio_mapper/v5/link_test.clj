@@ -31,7 +31,7 @@
 ;;; TODO link-test should allow recording, but that means inserting two specifications into RIO first.
 ;;; For the time being, we'll use playback-only.
 
-(deftest link-test
+(deftest ^:vcr link-test
   (let [vcr    (vcr.helper/make-vcr)
         config (helper/make-test-config)
         client-info (clients-info/client-info (:clients config) "rio-mapper-dev.jomco.nl")
