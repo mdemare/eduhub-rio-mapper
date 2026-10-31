@@ -1,6 +1,38 @@
 .PHONY: all jar lint proof-specs test test-rio test-all-units test-redis test-e2e test-v5 record-v5 record-v6 test-v6 test-common create-common-test watson antq clean
+.PHONY: check full-check test-make test-fast test-v5-redis test-v6-redis test-v5-e2e test-v6-e2e playback-v5 playback-v6
 
 all: lint proof-specs test watson clean jar
+
+# Run once per ticket, within the ticket's check time budget.
+check: test-make lint test-fast
+
+# No time budget. Consider daily, after at least ten new commits since the
+# last full check. Keep shared-service tests sequential, even with make -j.
+full-check: check
+	$(MAKE) proof-specs
+	$(MAKE) playback-v5 playback-v6
+	$(MAKE) test-redis
+	$(MAKE) playback-ho-opleiding-v5 playback-ho-opleiding-v6
+	$(MAKE) test-e2e
+	$(MAKE) watson
+	$(MAKE) jar
+
+test-make:
+	python3 -B -m unittest discover -s test -p 'test_makefile.py'
+
+# Recorded interactions, Redis retries and live e2e tests belong to full-check.
+# The original test target still runs all non-Redis, non-e2e legacy tests.
+test-fast: test-common
+	VCR_RECORD=false clojure -M:test-v5 v5-fast
+	VCR_RECORD=false clojure -M:test-v6 v6-fast
+
+test-redis:
+	$(MAKE) test-v5-redis
+	$(MAKE) test-v6-redis
+
+test-e2e:
+	$(MAKE) test-v5-e2e
+	$(MAKE) test-v6-e2e
 
 jar: target/eduhub-rio-mapper-v5.jar target/eduhub-rio-mapper-v6.jar
 
@@ -32,7 +64,7 @@ test-v5-e2e:
 	clojure -M:test-v5 v5-e2e --no-capture-output
 
 playback-v5:
-	clojure -M:test-v5 v5-vcr
+	VCR_RECORD=false clojure -M:test-v5 v5-vcr
 
 record-v5:
 	rm -rf test-v5/fixtures/vcr/*
@@ -48,7 +80,7 @@ test-v6-e2e:
 	clojure -M:test-v6 v6-e2e --no-capture-output
 
 playback-v6:
-	clojure -M:test-v6 v6-vcr
+	VCR_RECORD=false clojure -M:test-v6 v6-vcr
 
 record-v6:
 	rm -rf test-v6/fixtures/vcr/*

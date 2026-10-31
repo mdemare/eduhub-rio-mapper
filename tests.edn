@@ -12,6 +12,10 @@
          {:id                      :v5
           :test-paths              ["test-v5"]
           :kaocha.filter/skip-meta [:redis :v5-e2e :ho-opleiding-lookup]}
+
+         {:id                      :v5-fast
+          :test-paths              ["test-v5"]
+          :kaocha.filter/skip-meta [:redis :v5-e2e :ho-opleiding-lookup :vcr]}
        
          {:id                       :v5-redis
           :test-paths               ["test-v5"]
@@ -26,6 +30,9 @@
          {:id                      :v6
           :test-paths              ["test-v6" ]
           :kaocha.filter/skip-meta [:redis :v6-e2e :ho-opleiding-lookup]}
+         {:id                      :v6-fast
+          :test-paths              ["test-v6"]
+          :kaocha.filter/skip-meta [:redis :v6-e2e :ho-opleiding-lookup :vcr]}
          {:id                       :v6-redis
           :test-paths               ["test-v6"]
           :kaocha.filter/focus-meta [:redis]}

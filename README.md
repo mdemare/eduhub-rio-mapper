@@ -20,6 +20,31 @@ make test-common
 
 This runs tests with **only** `src-common` on the classpath (excluding `src-v5`). If any common code depends on v5-specific namespaces, the test will fail with a `FileNotFoundException`.
 
+### Automated checks
+
+Run `make check` once per ticket, within the ticket's check time budget. It
+runs Makefile regression tests, lint, common tests (with an isolated classpath),
+and v5/v6 unit tests. Recorded interaction tests are excluded from this shorter
+run; Redis and live end-to-end tests also run separately.
+
+Run `make full-check` for the complete automated suite. It has no time budget
+and should be considered daily, after at least ten new commits since the last
+full check. It includes `check`, spec proofs, v5/v6 recorded interactions,
+Redis tests, hoOpleiding lookup playback, live end-to-end tests, dependency
+vulnerability checks, and both JAR builds. Any failed check makes the target
+fail. A direct invocation always runs the checks; the cadence is a policy for
+the caller, not a condition that skips validation.
+
+Both commands require Python 3, Java and the Clojure CLI, plus the existing
+test configuration. For `full-check`, start Redis and configure the live test
+credentials and services described in [doc/e2e.md](doc/e2e.md). Live tests
+modify test data in those services. Recorded interactions always run in
+playback mode, even if `VCR_RECORD=true` is set in the calling environment.
+
+The existing `make test` remains available for all non-Redis, non-e2e legacy
+tests, including recorded interactions. Use `make test-redis` or
+`make test-e2e` to run both API versions of those suites separately.
+
 ## Documentation
 
 ### Included
