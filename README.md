@@ -35,20 +35,16 @@ vulnerability checks, and both JAR builds. Any failed check makes the target
 fail. A direct invocation always runs the checks; the cadence is a policy for
 the caller, not a condition that skips validation.
 
-Both commands require Python 3, Java and the Clojure CLI, plus the existing
-test configuration. Verify the CLI with `clojure -Sdescribe` before running
-checks. On Linux, it can be installed without root access:
+Both commands require Python 3 and Java, plus the existing test configuration.
+Make uses the Clojure CLI on `PATH` when available. Otherwise it runs
+`dev/clojure.py`, which downloads CLI version `1.12.0.1530` from
+`download.clojure.org`, verifies its pinned SHA-256 checksum, and caches it
+under `.cpcache/clojure-cli/`. This fallback works on Unix without root access
+or shell profile changes. Its first run requires network access; later runs
+reuse the cached CLI. Download and checksum failures fail the check. Maven
+dependencies must also be available locally or downloadable.
 
-```sh
-(
-  cd "$(mktemp -d)"
-  curl --fail --location --output install-clojure.sh \
-    https://download.clojure.org/install/linux-install-1.12.0.1530.sh
-  bash install-clojure.sh --prefix "$HOME/.local"
-)
-export PATH="$HOME/.local/bin:$PATH"
-clojure -Sdescribe
-```
+Set `CLOJURE=/path/to/clojure` when invoking Make to select a specific CLI.
 
 For `full-check`, start Redis and configure the live test
 credentials and services described in [doc/e2e.md](doc/e2e.md). Live tests

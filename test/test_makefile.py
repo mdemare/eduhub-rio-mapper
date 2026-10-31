@@ -12,7 +12,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 FAST = [
-    "python3 -B -m unittest discover -s test -p test_makefile.py",
+    "python3 -B -m unittest discover -s test -p test_*.py",
     "clojure -M:lint",
     "clojure -M:test-common common",
     "clojure -M:test-v5 v5-fast",
@@ -38,7 +38,7 @@ class MakefileTest(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.work = Path(self.temp.name)
         shutil.copyfile(ROOT / "Makefile", self.work / "Makefile")
-        for directory in ("bin", "src-common", "src-v5", "src-v6", "resources"):
+        for directory in ("bin", "dev", "src-common", "src-v5", "src-v6", "resources"):
             (self.work / directory).mkdir()
         self.log = self.work / "commands.jsonl"
         # Use the absolute interpreter so the python3 stand-in cannot recurse.
@@ -53,19 +53,47 @@ sys.exit(23 if command == os.environ.get("FAIL_COMMAND") else 0)
             executable.write_text(stub)
             executable.chmod(0o755)
 
-    def run_make(self, target, fail="", parallel=False):
+    def run_make(self, target, fail="", parallel=False, without_clojure=False, clojure=None):
         self.log.unlink(missing_ok=True)
         env = dict(os.environ, PATH=f"{self.work / 'bin'}:{os.environ['PATH']}",
                    COMMAND_LOG=str(self.log), FAIL_COMMAND=fail, VCR_RECORD="true")
+        if without_clojure:
+            (self.work / "bin" / "clojure").unlink()
+            # Isolate PATH so an installed host CLI cannot hide the fallback.
+            for command in ("make", "find", "mkdir", "rm"):
+                (self.work / "bin" / command).symlink_to(shutil.which(command))
+            env["PATH"] = str(self.work / "bin")
         # Do not inherit caller flags such as -i (ignore failures) or -n.
         env.pop("MAKEFLAGS", None)
         env.pop("MFLAGS", None)
+        env.pop("MAKEOVERRIDES", None)
+        env.pop("CLOJURE", None)
         result = subprocess.run(
-            ["make", "--no-print-directory", *(["-j4"] if parallel else []), target],
+            ["make", "--no-print-directory", *(["-j4"] if parallel else []),
+             *([f"CLOJURE={clojure}"] if clojure else []), target],
             cwd=self.work, env=env, capture_output=True, text=True,
         )
         calls = [json.loads(line) for line in self.log.read_text().splitlines()]
         return result, calls
+
+    def test_missing_cli_uses_repository_fallback(self):
+        result, calls = self.run_make("check", without_clojure=True)
+        self.assertEqual(0, result.returncode, result.stderr)
+        expected = [command.replace("clojure ", "python3 -B dev/clojure.py ")
+                    for command in FAST]
+        self.assertEqual(expected, [command for command, _ in calls])
+
+    def test_fallback_failure_makes_check_fail(self):
+        result, _ = self.run_make("check", without_clojure=True,
+                                  fail="python3 -B dev/clojure.py -M:lint")
+        self.assertNotEqual(0, result.returncode, result.stdout)
+
+    def test_explicit_cli_overrides_path_detection(self):
+        custom = self.work / "bin" / "custom-clojure"
+        custom.symlink_to(self.work / "bin" / "clojure")
+        result, calls = self.run_make("lint", clojure=custom)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual(["custom-clojure -M:lint"], [command for command, _ in calls])
 
     def test_check_runs_only_fast_checks_once(self):
         result, calls = self.run_make("check")
