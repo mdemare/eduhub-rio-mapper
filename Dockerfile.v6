@@ -9,7 +9,7 @@ FROM gcr.io/distroless/java21-debian12:nonroot
 COPY --from=builder /app/target/eduhub-rio-mapper-v6.jar /eduhub-rio-mapper-v6.jar
 # Make sure there is an opentelemetry agent in the workdir in case docker-compose
 # starts up a process with -javaagent in the JAVA_TOOL_OPTIONS
-COPY --from=builder /app/vendor/opentelemetry-javaagent-2.9.0.jar /opentelemetry-javaagent.jar
+COPY --from=builder /app/vendor/opentelemetry-javaagent-2.33.1.jar /opentelemetry-javaagent.jar
 
 WORKDIR /
 ENTRYPOINT ["java", "-jar", "/eduhub-rio-mapper-v6.jar"]
