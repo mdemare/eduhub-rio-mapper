@@ -140,10 +140,8 @@
    {:post [(some? (-> % :rio-config :credentials :certificate))]}
    (let [[config errs] (load-config-from-env env)]
      (when errs
-       (.println *err* "Configuration error")
-       (.println *err* (prn-str (keys env)))
-       (.println *err* (envopts/errs-description errs))
-       (System/exit 1))
+       (throw (ex-info (str "Configuration error\n" (envopts/errs-description errs))
+                       {:errors errs})))
      (let [{:keys [clients-info-config
                    keystore
                    keystore-pass

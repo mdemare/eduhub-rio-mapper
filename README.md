@@ -50,6 +50,9 @@ For `full-check`, start Redis and configure the live test
 credentials and services described in [doc/e2e.md](doc/e2e.md). Live tests
 modify test data in those services. Recorded interactions always run in
 playback mode, even if `VCR_RECORD=true` is set in the calling environment.
+Legacy playback uses the committed test keystore and clients, dummy credentials,
+and the endpoint URLs in the cassettes. It ignores live environment settings;
+`make playback-v5 playback-v6` needs no service credentials or Redis.
 
 The existing `make test` remains available for all non-Redis, non-e2e legacy
 tests, including recorded interactions. Use `make test-redis` or
