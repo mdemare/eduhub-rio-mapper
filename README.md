@@ -37,11 +37,11 @@ the caller, not a condition that skips validation.
 
 Both commands require Python 3 and Java, plus the existing test configuration.
 Make uses the Clojure CLI on `PATH` when available. Otherwise it runs
-`dev/clojure.py`, which downloads CLI version `1.12.0.1530` from
-`download.clojure.org`, verifies its pinned SHA-256 checksum, and caches it
-under `.cpcache/clojure-cli/`. This fallback works on Unix without root access
-or shell profile changes. Its first run requires network access; later runs
-reuse the cached CLI. Download and checksum failures fail the check. Maven
+`dev/clojure.py`, which downloads CLI version `1.12.6.1673` from
+the official `clojure/brew-install` GitHub releases, verifies its pinned
+SHA-256 checksum, and caches it under `.cpcache/clojure-cli/`. This fallback
+works on Unix without root access or shell profile changes. Its first run
+requires network access; later runs reuse the cached CLI. Download and checksum failures fail the check. Maven
 dependencies must also be available locally or downloadable.
 
 Set `CLOJURE=/path/to/clojure` when invoking Make to select a specific CLI.
