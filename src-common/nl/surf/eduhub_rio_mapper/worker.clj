@@ -103,11 +103,26 @@
     {:keys [queue-fn
             set-status-fn]} :worker
     :as config} job side]
-  ((case side
-     :left redis/lpush
-     :right redis/rpush)
-   redis-conn (queue-key config (queue-fn job)) job)
-  (set-status-fn job :pending)
+  (let [push! (case side
+                :left redis/lpush
+                :right redis/rpush)
+        queue (queue-key config (queue-fn job))]
+    ;; Once published, a worker can finish the job before the push returns.
+    ;; Write pending first so it cannot overwrite a worker's later status.
+    (set-status-fn job :pending)
+    (try
+      (push! redis-conn queue job)
+      (catch Exception ex
+        ;; A rejected enqueue must still fail, without leaving a pending job.
+        ;; Redis may also be unavailable for this status write; preserve the
+        ;; original enqueue exception in that case.
+        (try
+          (set-status-fn job :error {:errors {:phase :enqueue
+                                            :message (.getMessage ex)
+                                            :retryable? false}})
+          (catch Exception status-ex
+            (log/error status-ex "Could not record enqueue failure")))
+        (throw ex))))
   job)
 
 (defn enqueue!
