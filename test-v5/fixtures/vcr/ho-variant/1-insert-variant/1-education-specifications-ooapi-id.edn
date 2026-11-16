@@ -1,0 +1,71 @@
+{:request
+ {:method :get,
+  :url
+  "https://gateway.test.surfeduhub.nl/education-specifications/f5afb31e-daba-4cfc-9888-25212a02c9a6?returnTimelineOverrides=true",
+  :headers {"X-Route" "endpoint=endpoint01.sandbox.jomco.nl"},
+  :body nil},
+ :response
+ {:status 200,
+  :body
+  {:JSONSTRING
+   {"gateway"
+    {"requestId" "wQKtvGDgXSpJKvngHsFCk",
+     "traceparent_trace_id" "98d521dfa937af9467b9f7a187325684",
+     "traceparent_id" "107643b98df9f904",
+     "request"
+     "/education-specifications/f5afb31e-daba-4cfc-9888-25212a02c9a6?returnTimelineOverrides=true",
+     "endpoints"
+     {"endpoint01.sandbox.jomco.nl"
+      {"url"
+       "https://objectstore.surf.nl/swift/v1/AUTH_8e0eecf8d38141f7aa98bc3078fc9ccd/rio-mapper-test-suite/education-specifications/f5afb31e-daba-4cfc-9888-25212a02c9a6?returnTimelineOverrides=true",
+       "responseCode" 200,
+       "headers"
+       {"content-length" "2231", "content-type" "application/json"}}}},
+    "responses"
+    {"endpoint01.sandbox.jomco.nl"
+     {"fieldsOfStudy" "0612",
+      "studyLoad" {"value" 128, "studyLoadUnit" "ects"},
+      "validFrom" "2016-12-16",
+      "consumers"
+      [{"consumerKey" "rio",
+        "educationSpecificationSubType" "variant",
+        "category"
+        ["agriculture_food_and_natural_environment"
+         "healthcare_and_sport"
+         "tourism_hospitality_and_recreation"]}],
+      "sector" "higher professional education",
+      "parent" "320abe0e-cf26-407e-9b3a-a2328cf80c86",
+      "educationSpecificationId"
+      "f5afb31e-daba-4cfc-9888-25212a02c9a6",
+      "name"
+      [{"language" "en-GB",
+        "value" "EN TRANSLATION: Orthopedische Technologie"}
+       {"language" "nl-NL",
+        "value" "NL VERTALING: Orthopedische Technologie"}],
+      "level" "bachelor",
+      "primaryCode"
+      {"codeType" "identifier",
+       "code" "f5afb31e-daba-4cfc-9888-25212a02c9a6"},
+      "validTo" "2025-04-25",
+      "link"
+      "https://universiteit-van-boxtel.nl/education-specifications/f5afb31e-daba-4cfc-9888-25212a02c9a6",
+      "learningOutcomes"
+      [[{"language" "en-GB",
+         "value"
+         "EN TRANSLATION: algemene empathie voor levende wezens"}
+        {"language" "nl-NL",
+         "value"
+         "NL VERTALING: algemene empathie voor levende wezens"}]],
+      "educationSpecificationType" "program",
+      "formalDocument" "diploma",
+      "abbreviation" "OT",
+      "organization" "c388522c-ebc1-2889-1899-06a89e4f5091",
+      "levelOfQualification" "6",
+      "description"
+      [{"language" "en-GB",
+        "value"
+        "EN TRANSLATION: terrestrial systems. Examples include vegetation patterning, and dispersal by organisms, both at the global hydrological cycle contained in different watersheds in Valencia. The 4th semester revolves around two commonly asked questions: i) how can science inform the design tools."}
+       {"language" "nl-NL",
+        "value"
+        "NL VERTALING: terrestrial systems. Examples include vegetation patterning, and dispersal by organisms, both at the global hydrological cycle contained in different watersheds in Valencia. The 4th semester revolves around two commonly asked questions: i) how can science inform the design tools."}]}}}},
+  :headers {"content-type" "application/json; charset=utf-8"}}}
