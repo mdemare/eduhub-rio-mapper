@@ -211,9 +211,9 @@
                                (swap! jobs conj [type id action])
                                {:goedgekeurd true :opleidingscode "1010O6466"})
                              "parent" "child" "offered" :eduspec :program)
-      (is (= [[:eduspec child-key "upsert"] [:program offered-key "upsert"]
+      (is (= [[:eduspec child-key "upsert"] [:eduspec child-key "upsert"] [:program offered-key "upsert"]
               [:program offered-key "delete"] [:eduspec child-key "delete"]] @jobs))
-      (is (= [1 2 3 4 5 6] @steps)))))
+      (is (= [1 2 3 4 5 6 7 8] @steps)))))
 
 (deftest bounded-wait-covers-delayed-visibility
   (let [calls (atom 0)]

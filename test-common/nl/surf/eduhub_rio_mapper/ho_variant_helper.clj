@@ -208,11 +208,12 @@
     (assert (= 3 (count (set [parent-id child-id offered-id]))) "Scenario identities must be distinct")
     (try
       (step 1 "insert-variant" #(is (:opleidingscode (job! oe-type child-id "upsert"))))
-      (let [variant-code
+      (let [{variant-code :code initial-relations :relations}
             (step 2 "assert-variant"
                   #(let [code (resolver :oe child-id institution-oin)
                          response (load! :oe code)
-                         entity (first (children response "hoOpleiding"))]
+                         entity (first (children response "hoOpleiding"))
+                         actual-relations (relations getter institution-oin code)]
                      (is (some? entity))
                      (is (= code (text entity "opleidingseenheidcode")))
                      (is (= "VARIANT" (characteristic entity "soort")))
@@ -220,10 +221,30 @@
                      (is (= [{:opleidingseenheidcodes #{(:code parent) code}
                               :valid-from (last (sort [(:valid-from parent) "2016-12-16"]))
                               :valid-to (first (sort (keep identity [(:valid-to parent) "2025-04-25"])))}]
-                            (relations getter institution-oin code)))
-                     code))]
-        (step 3 "insert-offered" #(job! ao-type offered-id "upsert"))
-        (step 4 "assert-offered"
+                            actual-relations))
+                     {:code code :relations actual-relations}))]
+        (step 3 "upsert-unchanged-variant"
+              (fn []
+                ;; Observe real requests around the recorder/player so this assertion
+                ;; covers record and playback without replacing the relation handler.
+                (let [cassette http-utils/*vcr*
+                      relation-writes (atom [])]
+                  (binding [http-utils/*vcr*
+                            (fn [handler request]
+                              (let [action (get-in request [:headers "SOAPAction"])]
+                                (when (and action (re-find #"(?:aanleveren|verwijderen)_opleidingsrelatie" action))
+                                  (swap! relation-writes conj action)))
+                              (cassette handler request))]
+                    (is (= variant-code (:opleidingscode (job! oe-type child-id "upsert")))))
+                  (is (empty? @relation-writes)
+                      (str "Unchanged variant must not insert or delete relations: " @relation-writes)))))
+        (step 4 "assert-unchanged-variant"
+              #(do
+                 (is (= variant-code (resolver :oe child-id institution-oin)))
+                 (is (= initial-relations (relations getter institution-oin variant-code))
+                     "Unchanged variant retains exactly the same parent relation and validity dates")))
+        (step 5 "insert-offered" #(job! ao-type offered-id "upsert"))
+        (step 6 "assert-offered"
               #(let [code (resolver :ao offered-id institution-oin)
                      entity (first (children (load! :ao code) "aangebodenHOOpleiding"))]
                  (is (some? entity))
@@ -233,7 +254,7 @@
         ;; Never clean up the accredited parent, including after partial failure.
         (try
           (when (@created offered-id)
-            (step 5 "delete-offered" #(job! ao-type offered-id "delete")))
+            (step 7 "delete-offered" #(job! ao-type offered-id "delete")))
           (finally
             (when (@created child-id)
-              (step 6 "delete-variant" #(job! oe-type child-id "delete")))))))))
+              (step 8 "delete-variant" #(job! oe-type child-id "delete")))))))))
