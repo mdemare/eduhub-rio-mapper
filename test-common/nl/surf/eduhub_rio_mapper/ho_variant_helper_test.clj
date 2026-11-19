@@ -194,12 +194,18 @@
 (deftest scenario-only-mutates-variant-and-offered
   (let [jobs (atom [])
         steps (atom [])
+        child-upserts (atom 0)
         parent {:code parent-code :key parent-key :valid-from "2002-09-01" :valid-to nil}
         handlers {:getter (fn [request]
                             (case (::rio/type request)
-                              "opleidingseenheid" (dom (str "<ns2:hoOpleiding><ns2:opleidingseenheidcode>1010O6466</ns2:opleidingseenheidcode>" (characteristic "soort" "VARIANT") "</ns2:hoOpleiding>"))
+                              "opleidingseenheid" (dom (str "<ns2:hoOpleiding><ns2:opleidingseenheidcode>1010O6466</ns2:opleidingseenheidcode>"
+                                                           "<ns2:begindatum>2017-01-01</ns2:begindatum><ns2:einddatum>2024-04-25</ns2:einddatum>"
+                                                           (characteristic "soort" "VARIANT") "</ns2:hoOpleiding>"))
                               "aangebodenOpleiding" (dom (str "<ns2:aangebodenHOOpleiding><ns2:aangebodenOpleidingCode>" offered-key "</ns2:aangebodenOpleidingCode><ns2:opleidingseenheidcode>1010O6466</ns2:opleidingseenheidcode></ns2:aangebodenHOOpleiding>"))
-                              "opleidingsrelatiesBijOpleidingseenheid" [(assoc managed :valid-to "2025-04-25")]))
+                              "opleidingsrelatiesBijOpleidingseenheid"
+                              [(if (= 3 @child-upserts)
+                                 (assoc managed :valid-from "2017-01-01" :valid-to "2024-04-25")
+                                 (assoc managed :valid-to "2025-04-25"))]))
                   :resolver (fn [type id _]
                               (is (= (if (= type :oe) child-key offered-key) id))
                               (if (= type :oe) "1010O6466" offered-key))}]
@@ -209,11 +215,20 @@
       (variant/run-scenario! "v5" handlers "oin"
                              (fn [type id action]
                                (swap! jobs conj [type id action])
+                               (when (and (= id child-key) (= action "upsert") (= 3 (swap! child-upserts inc)))
+                                 (doseq [[action start end] [["verwijderen_opleidingsrelatie" "2016-12-16" nil]
+                                                            ["aanleveren_opleidingsrelatie" "2017-01-01" "2024-04-25"]]]
+                                   (http-utils/*vcr* (fn [_] {})
+                                                    {:headers {"SOAPAction" (str "http://example.com/" action)}
+                                                     :body (str "<request><opleidingseenheidcode>" parent-code "</opleidingseenheidcode>"
+                                                                "<opleidingseenheidcode>1010O6466</opleidingseenheidcode><begindatum>" start "</begindatum>"
+                                                                (when end (str "<einddatum>" end "</einddatum>")) "</request>")})))
                                {:goedgekeurd true :opleidingscode "1010O6466"})
                              "parent" "child" "offered" :eduspec :program)
-      (is (= [[:eduspec child-key "upsert"] [:eduspec child-key "upsert"] [:program offered-key "upsert"]
+      (is (= [[:eduspec child-key "upsert"] [:eduspec child-key "upsert"]
+              [:eduspec child-key "upsert"] [:program offered-key "upsert"]
               [:program offered-key "delete"] [:eduspec child-key "delete"]] @jobs))
-      (is (= [1 2 3 4 5 6 7 8] @steps)))))
+      (is (= [1 2 3 4 5 6 7 8 9 10] @steps)))))
 
 (deftest bounded-wait-covers-delayed-visibility
   (let [calls (atom 0)]

@@ -30,6 +30,7 @@
             [nl.surf.eduhub-rio-mapper.specs.ooapi :as-alias ooapi]
             [nl.surf.eduhub-rio-mapper.specs.rio :as-alias rio]
             [nl.surf.eduhub-rio-mapper.utils.http-utils :as http-utils]
+            [nl.surf.eduhub-rio-mapper.utils.xml-utils :as xml]
             [nl.surf.eduhub-rio-mapper.vcr-helper :as vcr])
   (:import [java.util UUID]
            [org.w3c.dom Node]))
@@ -185,6 +186,37 @@
       {:parent (read! (str (root version) "/parent.edn"))
        :mapping (read! (str (root version) "/mapping.edn"))})))
 
+(def changed-variant-dates {:validFrom "2017-01-01" :validTo "2024-04-25"})
+
+(defn upload-changed-variant!
+  "Replace only the variant's remote fixture, retaining its session identity.
+  Playback gets the changed OOAPI response from its cassette instead."
+  [child-name mapping]
+  (when (= :record vcr/vcr-mode)
+    (binding [http-utils/*vcr* (fn [handler request] (handler request))]
+      (let [path (str (first (str/split child-name #"/")) "/" (get mapping child-name))
+            object (some #(when (= path (:path %)) %) (remote/remote-objects mapping))
+            {:keys [container-name] :as config} (remote/config)]
+        (when-not object
+          (throw (ex-info "Ho variant fixture missing for date change" {:path path})))
+        (remote/os-put-object (remote/swift-auth-info config) container-name
+                              (update object :body
+                                      #(json/write-str (merge (json/read-str % :key-fn keyword)
+                                                              changed-variant-dates))))))))
+
+(defn- relation-write [request]
+  (when-let [action (some-> (get-in request [:headers "SOAPAction"])
+                           (str/split #"/") last)]
+    (when (#{"aanleveren_opleidingsrelatie" "verwijderen_opleidingsrelatie"} action)
+      (let [document (xml/str->dom (:body request))
+            values (fn [tag]
+                     (let [nodes (.getElementsByTagNameNS document "*" tag)]
+                       (mapv #(.getTextContent (.item nodes %)) (range (.getLength nodes)))))]
+        {:action action
+         :opleidingseenheidcodes (set (values "opleidingseenheidcode"))
+         :valid-from (first (values "begindatum"))
+         :valid-to (first (values "einddatum"))}))))
+
 (defn run-scenario!
   [version {:keys [getter resolver]} institution-oin run-job parent-name child-name offered-name oe-type ao-type]
   (let [{:keys [parent mapping]} (scenario-data version)
@@ -243,8 +275,41 @@
                  (is (= variant-code (resolver :oe child-id institution-oin)))
                  (is (= initial-relations (relations getter institution-oin variant-code))
                      "Unchanged variant retains exactly the same parent relation and validity dates")))
-        (step 5 "insert-offered" #(job! ao-type offered-id "upsert"))
-        (step 6 "assert-offered"
+        ;; ObjectStore setup is unrecorded and skipped entirely during playback.
+        (upload-changed-variant! child-name mapping)
+        (let [expected-relation
+              {:opleidingseenheidcodes #{(:code parent) variant-code}
+               :valid-from (last (sort [(:valid-from parent) (:validFrom changed-variant-dates)]))
+               :valid-to (first (sort (keep identity [(:valid-to parent) (:validTo changed-variant-dates)])))}]
+          (is (not= (:valid-from (first initial-relations)) (:valid-from expected-relation))
+              "Selected parent must allow the variant relation's start date to change")
+          (is (not= (:valid-to (first initial-relations)) (:valid-to expected-relation))
+              "Selected parent must allow the variant relation's end date to change")
+          (step 5 "upsert-changed-validity"
+                (fn []
+                  (let [cassette http-utils/*vcr*
+                        writes (atom [])]
+                    (binding [http-utils/*vcr*
+                              (fn [handler request]
+                                (when-let [write (relation-write request)]
+                                  (swap! writes conj write))
+                                (cassette handler request))]
+                      (is (= variant-code (:opleidingscode (job! oe-type child-id "upsert")))))
+                    (is (= [(assoc (first initial-relations)
+                                   :action "verwijderen_opleidingsrelatie" :valid-to nil)
+                            (assoc expected-relation :action "aanleveren_opleidingsrelatie")]
+                           @writes)
+                        "Delete the old relation before inserting its replacement, with exact endpoints and dates"))))
+          (step 6 "assert-changed-validity"
+                #(let [code (resolver :oe child-id institution-oin)
+                       entity (first (children (load! :oe code) "hoOpleiding"))]
+                   (is (= variant-code code))
+                   (is (= (:validFrom changed-variant-dates) (text entity "begindatum")))
+                   (is (= (:validTo changed-variant-dates) (text entity "einddatum")))
+                   (is (= [expected-relation] (relations getter institution-oin code))
+                       "Exactly one relation remains, with the updated validity dates"))))
+        (step 7 "insert-offered" #(job! ao-type offered-id "upsert"))
+        (step 8 "assert-offered"
               #(let [code (resolver :ao offered-id institution-oin)
                      entity (first (children (load! :ao code) "aangebodenHOOpleiding"))]
                  (is (some? entity))
@@ -254,7 +319,7 @@
         ;; Never clean up the accredited parent, including after partial failure.
         (try
           (when (@created offered-id)
-            (step 7 "delete-offered" #(job! ao-type offered-id "delete")))
+            (step 9 "delete-offered" #(job! ao-type offered-id "delete")))
           (finally
             (when (@created child-id)
-              (step 8 "delete-variant" #(job! oe-type child-id "delete")))))))))
+              (step 10 "delete-variant" #(job! oe-type child-id "delete")))))))))
