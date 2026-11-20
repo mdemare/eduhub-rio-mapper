@@ -22,6 +22,7 @@
             [nl.surf.eduhub-rio-mapper.clients-info :as clients-info]
             [nl.surf.eduhub-rio-mapper.ho-variant-helper :as variant]
             [nl.surf.eduhub-rio-mapper.specs.ooapi :as-alias ooapi]
+            [nl.surf.eduhub-rio-mapper.specs.rio :as-alias rio]
             [nl.surf.eduhub-rio-mapper.v5.commands.processing :as processing]
             [nl.surf.eduhub-rio-mapper.v5.config :as config]
             [nl.surf.eduhub-rio-mapper.v5.job :as job]
@@ -52,4 +53,12 @@
                             false))]
     (variant/run-scenario! "v5" handlers (:institution-oin client) run-job
                            "education-specifications/ho-variant-parent" "education-specifications/ho-variant-child" "programs/ho-variant-offered"
-                           "education-specification" "program")))
+                           "education-specification" "program"
+                           {:institution-schac-home (:institution-schac-home client)
+                            :relation-diff
+                            (fn [id known-code]
+                              (let [entity ((:ooapi-loader handlers)
+                                            {::ooapi/type "education-specification" ::ooapi/id id
+                                             :institution-schac-home (:institution-schac-home client)})
+                                    entity (cond-> entity known-code (assoc ::rio/opleidingscode known-code))]
+                                (relation-handler/relation-mutations entity client handlers)))})))

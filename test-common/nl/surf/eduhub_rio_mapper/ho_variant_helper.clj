@@ -191,6 +191,10 @@
                              "Re-record with `make record-ho-variant-" version "` while the RIO test service is available. "
                              "The existing recordings cannot replay the new steps.")
                         {:missing-directory intersection-dir})))
+      (when-not (.isDirectory (io/file (str (root version) "/17-load-and-resolve-parent")))
+        (throw (ex-info (str "Ho variant recordings predate the parent-loading scenarios. "
+                             "Re-record with `make record-ho-variant-" version "` while the RIO test service is available.")
+                        {:missing-directory (str (root version) "/17-load-and-resolve-parent")})))
       data)))
 
 (def changed-variant-dates {:validFrom "2017-01-01" :validTo "2024-04-25"})
@@ -279,8 +283,64 @@
          :valid-from (first (values "begindatum"))
          :valid-to (first (values "einddatum"))}))))
 
+(defn- soap-identity [body]
+  (let [document (xml/str->dom body)
+        value (fn [tag]
+                (let [nodes (.getElementsByTagNameNS document "*" tag)]
+                  (when (pos? (.getLength nodes))
+                    (.getTextContent (.item nodes 0)))))]
+    {:sender (value "verzendendeInstantie")
+     :key (value "eigenOpleidingseenheidSleutel")
+     :code (value "opleidingseenheidcode")}))
+
+(defn- parent-loading-exchange [request response]
+  (if (= :get (:method request))
+    {:operation :ooapi
+     :path (.getPath (java.net.URI. (:url request)))
+     :route (get-in request [:headers "X-Route"])}
+    (let [action (some-> (get-in request [:headers "SOAPAction"]) (str/split #"/") last)
+          {:keys [sender key code]} (soap-identity (:body request))]
+      (case action
+        "opvragen_rioIdentificatiecode"
+        {:operation :resolve :sender sender :key key :resolved-code (:code (soap-identity (:body response)))}
+        "opvragen_opleidingsrelatiesBijOpleidingseenheid"
+        {:operation :relations :sender sender :code code}
+        {:operation action}))))
+
+(defn run-parent-loading!
+  "Exercise the production relation handler with real loaders and resolver.
+  The second call supplies the child's RIO code, as the normal confirm phase does."
+  [{:keys [parent parent-name child-name child-id variant-code institution-oin
+           institution-schac-home relation-diff step]}]
+  (let [ooapi-read (fn [fixture-name id]
+                     {:operation :ooapi
+                      :path (str "/" (first (str/split fixture-name #"/")) "/" id)
+                      :route (str "endpoint=" institution-schac-home)})
+        child-resolution {:operation :resolve :sender institution-oin :key child-id :resolved-code variant-code}
+        parent-resolution {:operation :resolve :sender institution-oin :key (:key parent) :resolved-code (:code parent)}
+        relation-read {:operation :relations :sender institution-oin :code variant-code}]
+    (doseq [[idx name known-code] [[17 "load-and-resolve-parent" nil]
+                                  [18 "reuse-known-child-code" variant-code]]]
+      (step idx name
+            (fn []
+              (let [cassette http-utils/*vcr*
+                    exchanges (atom [])]
+                (binding [http-utils/*vcr*
+                          (fn [handler request]
+                            (let [response (cassette handler request)]
+                              (swap! exchanges conj (parent-loading-exchange request response))
+                              response))]
+                  (is (= {:missing #{} :superfluous #{}} (relation-diff child-id known-code))
+                      "Loaded parent resolves to the existing relation's exact endpoint"))
+                (is (= (cond-> [(ooapi-read child-name child-id)]
+                         (nil? known-code) (conj child-resolution)
+                         :always (into [relation-read (ooapi-read parent-name (:key parent)) parent-resolution]))
+                       @exchanges)
+                    (str name ": exact OOAPI identities, institution context and resolution calls"))))))))
+
 (defn run-scenario!
-  [version {:keys [getter resolver]} institution-oin run-job parent-name child-name offered-name oe-type ao-type]
+  [version {:keys [getter resolver]} institution-oin run-job parent-name child-name offered-name oe-type ao-type
+   {:keys [institution-schac-home relation-diff]}]
   (let [{:keys [parent mapping]} (scenario-data version)
         parent-id (str (get mapping parent-name))
         child-id (str (get mapping child-name))
@@ -374,8 +434,12 @@
          {:version version :parent parent :parent-name parent-name :child-name child-name
           :mapping mapping :child-id child-id :variant-code variant-code :institution-oin institution-oin
           :oe-type oe-type :job! job! :step step :load! load! :getter getter :resolver resolver})
-        (step 17 "insert-offered" #(job! ao-type offered-id "upsert"))
-        (step 18 "assert-offered"
+        (run-parent-loading!
+         {:parent parent :parent-name parent-name :child-name child-name :child-id child-id
+          :variant-code variant-code :institution-oin institution-oin
+          :institution-schac-home institution-schac-home :relation-diff relation-diff :step step})
+        (step 19 "insert-offered" #(job! ao-type offered-id "upsert"))
+        (step 20 "assert-offered"
               #(let [code (resolver :ao offered-id institution-oin)
                      entity (first (children (load! :ao code) "aangebodenHOOpleiding"))]
                  (is (some? entity))
@@ -385,7 +449,7 @@
         ;; Never clean up the accredited parent, including after partial failure.
         (try
           (when (@created offered-id)
-            (step 19 "delete-offered" #(job! ao-type offered-id "delete")))
+            (step 21 "delete-offered" #(job! ao-type offered-id "delete")))
           (finally
             (when (@created child-id)
-              (step 20 "delete-variant" #(job! oe-type child-id "delete")))))))))
+              (step 22 "delete-variant" #(job! oe-type child-id "delete")))))))))

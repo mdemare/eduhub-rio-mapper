@@ -62,13 +62,21 @@ For debugging set environment variable `STORE_HTTP_REQUESTS` to `true` to get ex
 
 See also [e2e GH workflow](../.github/workflows/e2e.yml).
 
-## Ho variant validity scenarios
+## Ho variant interaction scenarios
 
 The dedicated Ho variant interaction scenario covers insertion, an unchanged
 upsert, changed validity dates, and validity intersections. The intersection
 cases exercise both entities supplying the tighter bounds, either end date
 being absent, and both end dates being absent. v6 supplies datetime values and
 asserts date-only RIO values.
+
+Two additional recorded checks call the relation handler with real OOAPI and
+RIO clients: first with an unresolved child, then with its already-confirmed
+RIO code, as supplied by the mapper's confirm phase. They assert the exact
+parent OOAPI URL and gateway route, the institution OIN and external key in
+each resolution request, and the resolved RIO endpoints. The second check
+must resolve only the parent, without resolving the child again. These calls
+read existing data and require no relation mutations.
 
 These cases change the OOAPI fixtures for the parent and variant between
 upserts. They never upsert or change the dates of the accredited RIO parent;

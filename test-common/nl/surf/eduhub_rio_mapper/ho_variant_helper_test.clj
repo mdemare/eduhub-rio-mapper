@@ -213,6 +213,9 @@
                   variant/run-validity-intersections! (fn [context]
                                                         (is (= parent (:parent context)))
                                                         (is (= "1010O6466" (:variant-code context))))
+                  variant/run-parent-loading! (fn [context]
+                                                (is (= parent (:parent context)))
+                                                (is (= "1010O6466" (:variant-code context))))
                   loader/find-eigen-opleidingseenheid-sleutel (fn [& _] child-key)
                   vcr/make-vcr (fn [] (fn [_ idx _] (swap! steps conj idx) (fn [handler request] (handler request))))]
       (variant/run-scenario! "v5" handlers "oin"
@@ -227,11 +230,11 @@
                                                                 "<opleidingseenheidcode>1010O6466</opleidingseenheidcode><begindatum>" start "</begindatum>"
                                                                 (when end (str "<einddatum>" end "</einddatum>")) "</request>")})))
                                {:goedgekeurd true :opleidingscode "1010O6466"})
-                             "parent" "child" "offered" :eduspec :program)
+                             "parent" "child" "offered" :eduspec :program {})
       (is (= [[:eduspec child-key "upsert"] [:eduspec child-key "upsert"]
               [:eduspec child-key "upsert"] [:program offered-key "upsert"]
               [:program offered-key "delete"] [:eduspec child-key "delete"]] @jobs))
-      (is (= [1 2 3 4 5 6 17 18 19 20] @steps)))))
+      (is (= [1 2 3 4 5 6 19 20 21 22] @steps)))))
 
 (deftest bounded-wait-covers-delayed-visibility
   (let [calls (atom 0)]
@@ -271,7 +274,7 @@
             "oin" (fn [type id action]
                     (swap! jobs conj [type id action])
                     {:goedgekeurd true :opleidingscode "1010O6466"})
-            "parent" "child" "offered" :programme :programme)))
+            "parent" "child" "offered" :programme :programme {})))
       (is (= [[:programme child-key "upsert"] [:programme child-key "delete"]] @jobs)))))
 
 (deftest record-fixture-injects-prepared-key-and-dates-before-upload
