@@ -182,27 +182,89 @@
                                          "Then retain the generated ho-variant recordings, parent.edn and mapping.edn together "
                                          "and rerun `make playback-ho-variant-" version "`. Playback does not prepare the parent or generate recordings.")
                                     {:file file})))
-                  (edn/read-string (slurp file)))]
-      {:parent (read! (str (root version) "/parent.edn"))
-       :mapping (read! (str (root version) "/mapping.edn"))})))
+                  (edn/read-string (slurp file)))
+          data {:parent (read! (str (root version) "/parent.edn"))
+                :mapping (read! (str (root version) "/mapping.edn"))}
+          intersection-dir (str (root version) "/7-upsert-intersection-parent-bounds")]
+      (when-not (.isDirectory (io/file intersection-dir))
+        (throw (ex-info (str "Ho variant recordings predate the validity-intersection scenarios. "
+                             "Re-record with `make record-ho-variant-" version "` while the RIO test service is available. "
+                             "The existing recordings cannot replay the new steps.")
+                        {:missing-directory intersection-dir})))
+      data)))
 
 (def changed-variant-dates {:validFrom "2017-01-01" :validTo "2024-04-25"})
 
-(defn upload-changed-variant!
-  "Replace only the variant's remote fixture, retaining its session identity.
-  Playback gets the changed OOAPI response from its cassette instead."
-  [child-name mapping]
+(defn upload-fixture-dates!
+  "Replace date fields on selected OOAPI fixtures, retaining their identities.
+  An absent end date removes validTo. Playback uses recorded OOAPI responses."
+  [mapping updates]
   (when (= :record vcr/vcr-mode)
     (binding [http-utils/*vcr* (fn [handler request] (handler request))]
-      (let [path (str (first (str/split child-name #"/")) "/" (get mapping child-name))
-            object (some #(when (= path (:path %)) %) (remote/remote-objects mapping))
-            {:keys [container-name] :as config} (remote/config)]
-        (when-not object
-          (throw (ex-info "Ho variant fixture missing for date change" {:path path})))
-        (remote/os-put-object (remote/swift-auth-info config) container-name
-                              (update object :body
-                                      #(json/write-str (merge (json/read-str % :key-fn keyword)
-                                                              changed-variant-dates))))))))
+      (let [objects (into {} (map (juxt :path identity)) (remote/remote-objects mapping))
+            {:keys [container-name] :as config} (remote/config)
+            info (remote/swift-auth-info config)]
+        (doseq [[fixture-name dates] updates]
+          (let [path (str (first (str/split fixture-name #"/")) "/" (get mapping fixture-name))
+                object (get objects path)]
+            (when-not object
+              (throw (ex-info "Ho variant fixture missing for date change" {:path path})))
+            (remote/os-put-object info container-name
+                                  (update object :body
+                                          #(json/write-str
+                                            (merge (dissoc (json/read-str % :key-fn keyword) :validFrom :validTo)
+                                                   (into {} (remove (comp nil? val)) dates)))))))))))
+
+(def validity-intersection-cases
+  [{:name "parent-bounds"
+    :parent {:validFrom "2018-01-01" :validTo "2023-12-31"}
+    :child {:validFrom "2017-01-01" :validTo "2024-04-25"}
+    :expected {:valid-from "2018-01-01" :valid-to "2023-12-31"}}
+   {:name "child-bounds"
+    :parent {:validFrom "2018-01-01" :validTo "2023-12-31"}
+    :child {:validFrom "2018-06-01" :validTo "2022-12-31"}
+    :expected {:valid-from "2018-06-01" :valid-to "2022-12-31"}}
+   {:name "child-open-end"
+    :parent {:validFrom "2018-01-01" :validTo "2023-12-31"}
+    :child {:validFrom "2018-06-01"}
+    :expected {:valid-from "2018-06-01" :valid-to "2023-12-31"}}
+   {:name "parent-open-end"
+    :parent {:validFrom "2018-01-01"}
+    :child {:validFrom "2018-06-01" :validTo "2022-12-31"}
+    :expected {:valid-from "2018-06-01" :valid-to "2022-12-31"}}
+   {:name "both-open-end"
+    :parent {:validFrom "2018-01-01"}
+    :child {:validFrom "2018-06-01"}
+    :expected {:valid-from "2018-06-01" :valid-to nil}}])
+
+(defn run-validity-intersections!
+  [{:keys [version parent parent-name child-name mapping child-id variant-code
+           institution-oin oe-type job! step load! getter resolver]}]
+  (doseq [[idx {:keys [name expected] :as scenario}] (map-indexed vector validity-intersection-cases)]
+    (let [;; Only the OOAPI representation is narrowed; never upsert the accredited parent.
+          ;; v6 must turn datetime inputs into date-only RIO validity fields.
+          input-dates (fn [dates]
+                        (if (= "v6" version)
+                          (update-vals dates #(str % "T09:30:00+01:00"))
+                          dates))
+          child-dates (:child scenario)
+          expected-relation (assoc expected :opleidingseenheidcodes #{(:code parent) variant-code})]
+      (upload-fixture-dates! mapping {parent-name (input-dates (:parent scenario))
+                                     child-name (input-dates child-dates)})
+      (step (+ 7 (* 2 idx)) (str "upsert-intersection-" name)
+            #(is (= variant-code (:opleidingscode (job! oe-type child-id "upsert")))))
+      (step (+ 8 (* 2 idx)) (str "assert-intersection-" name)
+            #(let [code (resolver :oe child-id institution-oin)
+                   entity (first (children (load! :oe code) "hoOpleiding"))]
+               (is (= variant-code code))
+               (is (= (:validFrom child-dates) (text entity "begindatum")))
+               (is (= (:validTo child-dates) (text entity "einddatum")))
+               (is (= [expected-relation] (relations getter institution-oin code))
+                   (str name ": exactly one relation with the expected validity intersection"))
+               (when (= name "both-open-end")
+                 (let [accredited (first (children (load! :oe (:code parent)) "hoOpleiding"))]
+                   (is (= (:valid-from parent) (text accredited "begindatum")))
+                   (is (= (:valid-to parent) (text accredited "einddatum"))))))))))
 
 (defn- relation-write [request]
   (when-let [action (some-> (get-in request [:headers "SOAPAction"])
@@ -276,7 +338,7 @@
                  (is (= initial-relations (relations getter institution-oin variant-code))
                      "Unchanged variant retains exactly the same parent relation and validity dates")))
         ;; ObjectStore setup is unrecorded and skipped entirely during playback.
-        (upload-changed-variant! child-name mapping)
+        (upload-fixture-dates! mapping {child-name changed-variant-dates})
         (let [expected-relation
               {:opleidingseenheidcodes #{(:code parent) variant-code}
                :valid-from (last (sort [(:valid-from parent) (:validFrom changed-variant-dates)]))
@@ -308,8 +370,12 @@
                    (is (= (:validTo changed-variant-dates) (text entity "einddatum")))
                    (is (= [expected-relation] (relations getter institution-oin code))
                        "Exactly one relation remains, with the updated validity dates"))))
-        (step 7 "insert-offered" #(job! ao-type offered-id "upsert"))
-        (step 8 "assert-offered"
+        (run-validity-intersections!
+         {:version version :parent parent :parent-name parent-name :child-name child-name
+          :mapping mapping :child-id child-id :variant-code variant-code :institution-oin institution-oin
+          :oe-type oe-type :job! job! :step step :load! load! :getter getter :resolver resolver})
+        (step 17 "insert-offered" #(job! ao-type offered-id "upsert"))
+        (step 18 "assert-offered"
               #(let [code (resolver :ao offered-id institution-oin)
                      entity (first (children (load! :ao code) "aangebodenHOOpleiding"))]
                  (is (some? entity))
@@ -319,7 +385,7 @@
         ;; Never clean up the accredited parent, including after partial failure.
         (try
           (when (@created offered-id)
-            (step 9 "delete-offered" #(job! ao-type offered-id "delete")))
+            (step 19 "delete-offered" #(job! ao-type offered-id "delete")))
           (finally
             (when (@created child-id)
-              (step 10 "delete-variant" #(job! oe-type child-id "delete")))))))))
+              (step 20 "delete-variant" #(job! oe-type child-id "delete")))))))))

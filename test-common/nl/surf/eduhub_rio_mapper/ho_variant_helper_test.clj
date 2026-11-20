@@ -210,6 +210,9 @@
                               (is (= (if (= type :oe) child-key offered-key) id))
                               (if (= type :oe) "1010O6466" offered-key))}]
     (with-redefs [variant/scenario-data (constantly {:parent parent :mapping {"parent" parent-key "child" child-key "offered" offered-key}})
+                  variant/run-validity-intersections! (fn [context]
+                                                        (is (= parent (:parent context)))
+                                                        (is (= "1010O6466" (:variant-code context))))
                   loader/find-eigen-opleidingseenheid-sleutel (fn [& _] child-key)
                   vcr/make-vcr (fn [] (fn [_ idx _] (swap! steps conj idx) (fn [handler request] (handler request))))]
       (variant/run-scenario! "v5" handlers "oin"
@@ -228,7 +231,7 @@
       (is (= [[:eduspec child-key "upsert"] [:eduspec child-key "upsert"]
               [:eduspec child-key "upsert"] [:program offered-key "upsert"]
               [:program offered-key "delete"] [:eduspec child-key "delete"]] @jobs))
-      (is (= [1 2 3 4 5 6 7 8 9 10] @steps)))))
+      (is (= [1 2 3 4 5 6 17 18 19 20] @steps)))))
 
 (deftest bounded-wait-covers-delayed-visibility
   (let [calls (atom 0)]

@@ -61,3 +61,28 @@ make test-e2e TEST_OPTS=--no-capture-output
 For debugging set environment variable `STORE_HTTP_REQUESTS` to `true` to get extra information about the API calls done by the mapper.
 
 See also [e2e GH workflow](../.github/workflows/e2e.yml).
+
+## Ho variant validity scenarios
+
+The dedicated Ho variant interaction scenario covers insertion, an unchanged
+upsert, changed validity dates, and validity intersections. The intersection
+cases exercise both entities supplying the tighter bounds, either end date
+being absent, and both end dates being absent. v6 supplies datetime values and
+asserts date-only RIO values.
+
+These cases change the OOAPI fixtures for the parent and variant between
+upserts. They never upsert or change the dates of the accredited RIO parent;
+the final case reads that parent back to verify its dates are unchanged.
+The fixture parent windows start on 2018-01-01, so select an accredited parent
+whose actual validity includes these windows and has no end date.
+
+With the live environment loaded, record and replay using:
+
+```sh
+HO_VARIANT_PARENT_CODE=1001O3338 make record-ho-variant-v5
+make playback-ho-variant-v5
+```
+
+Use the corresponding `-v6` targets for v6. Fixture uploads happen only in
+record mode, outside VCR recording. Playback uses the recorded OOAPI responses
+and never uploads fixtures or contacts RIO.
