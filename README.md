@@ -37,7 +37,7 @@ the caller, not a condition that skips validation.
 
 Both commands require Python 3 and Java, plus the existing test configuration.
 Make uses the Clojure CLI on `PATH` when available. Otherwise it runs
-`dev/clojure.py`, which downloads CLI version `1.12.6.1673` from
+`dev/clojure.py`, which downloads CLI version `1.12.7.1681` from
 the official `clojure/brew-install` GitHub releases, verifies its pinned
 SHA-256 checksum, and caches it under `.cpcache/clojure-cli/`. This fallback
 works on Unix without root access or shell profile changes. Its first run

@@ -13,8 +13,8 @@ import tempfile
 import urllib.request
 
 
-VERSION = "1.12.6.1673"
-ARCHIVE_SHA256 = "fe9194858e75d5af13c2e2aff92d710674d5bc5105f2b42f90a7d94d82ec023c"
+VERSION = "1.12.7.1681"
+ARCHIVE_SHA256 = "791c12b5f5a0986ae7456cc50f8db7715992ecc330273305846034ed1bacd6da"
 ARCHIVE_URL = f"https://github.com/clojure/brew-install/releases/download/{VERSION}/clojure-tools-{VERSION}.tar.gz"
 CACHE_DIR = Path(__file__).resolve().parents[1] / ".cpcache" / "clojure-cli"
 

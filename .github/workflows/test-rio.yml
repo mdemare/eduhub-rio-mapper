@@ -17,7 +17,7 @@ jobs:
         with: { m2-cache-key: m2-test-rio }
 
       - name: Get status of previous run of this workflow - store in last_status
-        uses: Mercymeilya/last-workflow-status@040f64adf6b3514a99a3ce92c48cef9c5aea6caf # v0.3
+        uses: Mercymeilya/last-workflow-status@f86bce177498d6fdd3bda4113d7d93266cfc3fca # v0.3.5
         id: last_status
 
       - name: Setup certificate stores
