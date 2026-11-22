@@ -98,6 +98,8 @@ export CLJ_WATSON_NVD_API_DATAFEED_URL=https://dependency-check.github.io/Depend
 watson:
 	$(CLOJURE) -M:watson
 
+# Allow slow registry metadata lookups in CI and local runs.
+antq: export ANTQ_DEFAULT_TIMEOUT ?= 60000
 antq:
 	$(CLOJURE) -M:antq
 
