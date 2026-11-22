@@ -46,6 +46,10 @@ class MakefileTest(unittest.TestCase):
 command = " ".join([os.path.basename(sys.argv[0]), *sys.argv[1:]])
 with open(os.environ["COMMAND_LOG"], "a") as stream:
     stream.write(json.dumps([command, os.environ.get("VCR_RECORD")]) + "\\n")
+if sys.argv[-1] == "-M:antq":
+    # Model a metadata lookup that takes 15 seconds without sleeping.
+    if int(os.environ.get("ANTQ_DEFAULT_TIMEOUT", "10000")) < 15000:
+        sys.exit("Registry lookup timed out")
 sys.exit(23 if command == os.environ.get("FAIL_COMMAND") else 0)
 '''
         for command in ("clojure", "python3"):
@@ -53,7 +57,8 @@ sys.exit(23 if command == os.environ.get("FAIL_COMMAND") else 0)
             executable.write_text(stub)
             executable.chmod(0o755)
 
-    def run_make(self, target, fail="", parallel=False, without_clojure=False, clojure=None):
+    def run_make(self, target, fail="", parallel=False, without_clojure=False,
+                 clojure=None, antq_timeout=None):
         self.log.unlink(missing_ok=True)
         env = dict(os.environ, PATH=f"{self.work / 'bin'}:{os.environ['PATH']}",
                    COMMAND_LOG=str(self.log), FAIL_COMMAND=fail, VCR_RECORD="true")
@@ -68,6 +73,9 @@ sys.exit(23 if command == os.environ.get("FAIL_COMMAND") else 0)
         env.pop("MFLAGS", None)
         env.pop("MAKEOVERRIDES", None)
         env.pop("CLOJURE", None)
+        env.pop("ANTQ_DEFAULT_TIMEOUT", None)
+        if antq_timeout is not None:
+            env["ANTQ_DEFAULT_TIMEOUT"] = antq_timeout
         result = subprocess.run(
             ["make", "--no-print-directory", *(["-j4"] if parallel else []),
              *([f"CLOJURE={clojure}"] if clojure else []), target],
@@ -75,6 +83,20 @@ sys.exit(23 if command == os.environ.get("FAIL_COMMAND") else 0)
         )
         calls = [json.loads(line) for line in self.log.read_text().splitlines()]
         return result, calls
+
+    def test_antq_tolerates_slow_metadata_lookup(self):
+        for without_clojure in (False, True):
+            with self.subTest(without_clojure=without_clojure):
+                result, _ = self.run_make("antq", without_clojure=without_clojure)
+                self.assertEqual(0, result.returncode, result.stderr)
+
+    def test_antq_honors_override_and_propagates_failure(self):
+        result, _ = self.run_make("antq", antq_timeout="10000")
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("Registry lookup timed out", result.stderr)
+
+        result, _ = self.run_make("antq", fail="clojure -M:antq")
+        self.assertNotEqual(0, result.returncode)
 
     def test_missing_cli_uses_repository_fallback(self):
         result, calls = self.run_make("check", without_clojure=True)
