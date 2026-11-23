@@ -216,6 +216,9 @@
                   variant/run-parent-loading! (fn [context]
                                                 (is (= parent (:parent context)))
                                                 (is (= "1010O6466" (:variant-code context))))
+                  variant/run-unavailable-parent! (fn [context]
+                                                    (is (= parent (:parent context)))
+                                                    (is (= "1010O6466" (:variant-code context))))
                   loader/find-eigen-opleidingseenheid-sleutel (fn [& _] child-key)
                   vcr/make-vcr (fn [] (fn [_ idx _] (swap! steps conj idx) (fn [handler request] (handler request))))]
       (variant/run-scenario! "v5" handlers "oin"
@@ -234,7 +237,7 @@
       (is (= [[:eduspec child-key "upsert"] [:eduspec child-key "upsert"]
               [:eduspec child-key "upsert"] [:program offered-key "upsert"]
               [:program offered-key "delete"] [:eduspec child-key "delete"]] @jobs))
-      (is (= [1 2 3 4 5 6 19 20 21 22] @steps)))))
+      (is (= [1 2 3 4 5 6 24 25 26 27] @steps)))))
 
 (deftest bounded-wait-covers-delayed-visibility
   (let [calls (atom 0)]

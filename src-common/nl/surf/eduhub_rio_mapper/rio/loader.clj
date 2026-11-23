@@ -85,6 +85,9 @@
       (throw (ex-info error-msg {:retryable? false})))))
 
 (defn- rio-relation-getter-response [^Element element]
+  (when-not (rio-utils/goedgekeurd? element)
+    (throw (ex-info "Cannot reconcile relations: RIO rejected the relation read"
+                    {:error :relation-read-failed :retryable? true})))
   (when (rio-utils/goedgekeurd? element)
     (when-let [samenhang (xml-utils/get-in-dom element ["ns2:samenhangOpleidingseenheid"])]
       (let [code (xml-utils/single-xml-unwrapper samenhang "ns2:opleidingseenheidcode")

@@ -24,6 +24,7 @@
    [nl.surf.eduhub-rio-mapper.rio.helper :as rio.helper]
    [nl.surf.eduhub-rio-mapper.rio.loader :as rio.loader]
    [nl.surf.eduhub-rio-mapper.rio.mutator :as mutator]
+   [nl.surf.eduhub-rio-mapper.rio.relation-preconditions :as preconditions]
    [nl.surf.eduhub-rio-mapper.specs.mutation :as mutation]
    [nl.surf.eduhub-rio-mapper.specs.ooapi :as ooapi]
    [nl.surf.eduhub-rio-mapper.specs.rio :as rio]
@@ -49,9 +50,6 @@
       nil)))
 
 ;; If resolve not successful, nil is returned or exception thrown.
-(defn- can-resolve? [resolver rio-type ooapi-id institution-oin]
-  (some? (resolve-safe resolver rio-type ooapi-id institution-oin)))
-
 (defn- quick-validate-specification [{:keys [consumer] :as entity}]
   (when (nil? (:specificationType consumer))
     (let [error-msg "Invalid programme specification: specificationType required"]
@@ -132,16 +130,9 @@
                          :type       type
                          :action     action
                          :retryable? false})))
-      ;; For variants, we need to check if the eduspec this is a variant of (the parent) actually exists in RIO - if not, abort now
-      (when (and
-             (= rio-type :oe)
-             (some? (:variantOf consumer))
-             (not (can-resolve? resolver :oe (:variantOf consumer) institution-oin)))
-        (throw (ex-info (str "No 'opleidingseenheid' found in RIO for the parent of this variant with eigensleutel: " (:variantOf consumer))
-                        {:code       oe-code
-                         :type       type
-                         :action     action
-                         :retryable? false})))
+      (when (and (= rio-type :oe)
+                 (or (= "variant" (:specificationType consumer)) (some? (:variantOf consumer))))
+        (preconditions/resolve-parent! (:variantOf consumer) institution-oin resolver))
 
       (cond-> request
         oe-code (assoc ::rio/opleidingscode oe-code)
@@ -220,7 +211,7 @@
 
 ;; in:  {::ooapi/keys [type id entity] :keys [rio-relations action rio-type institution-name institution-oin institution-schac-home] ::rio/keys [opleidingscode aangeboden-opleiding-code]}
 ;; diff out: {}
-(defn- make-prune-relations-phase [{:keys [getter] :as _handlers} rio-config]
+(defn- make-prune-relations-phase [{:keys [getter] :as handlers} rio-config]
   (fn prune-relations-phase [{:keys [rio-relations institution-oin]
                               ::ooapi/keys [entity]
                               ::rio/keys [opleidingscode] :as request}]
@@ -229,7 +220,12 @@
       (let [prgspec entity
             {valid-relations true
              invalid-relations false} (group-by (partial valid-date-range? prgspec)
-                                                rio-relations)]
+                                                rio-relations)
+            parent-id (get-in entity [:consumer :variantOf])
+            request (if (and (seq invalid-relations) parent-id)
+                      (assoc request ::relation-handler/parent
+                             (relation-handler/load-required-parent! parent-id request handlers (:config request)))
+                      request)]
         ;; Delete invalid relations from RIO system
         (when (and (seq invalid-relations)
                    opleidingscode)

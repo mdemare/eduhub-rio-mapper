@@ -20,6 +20,7 @@
   (:require [clojure.set :as set]
             [clojure.spec.alpha :as s]
             [nl.surf.eduhub-rio-mapper.rio.mutator :as mutator]
+            [nl.surf.eduhub-rio-mapper.rio.relation-preconditions :as preconditions]
             [nl.surf.eduhub-rio-mapper.specs.mutation :as-alias mutation]
             [nl.surf.eduhub-rio-mapper.specs.ooapi :as ooapi]
             [nl.surf.eduhub-rio-mapper.specs.rio :as rio]
@@ -107,9 +108,22 @@
       (-> (relation-mutation :delete institution-oin rel)
           (mutator/mutate! rio-config)))))
 
+(defn load-required-parent! [parent-id {:keys [institution-oin institution-schac-home]} {:keys [ooapi-loader resolver]}]
+  (preconditions/require-parent!
+   parent-id institution-oin :educationSpecificationId
+   (fn [id] (ooapi-loader {::ooapi/type "education-specification" ::ooapi/id id
+                           :institution-schac-home institution-schac-home}))
+   (fn [entity]
+     (if (::rio/opleidingscode entity)
+       entity
+       (when-let [code (resolver :oe (:educationSpecificationId entity) institution-oin)]
+         (assoc entity ::rio/opleidingscode code))))))
+
 (defn relation-mutations
   ([eduspec job handlers]
    (let [rio-consumer (ooapi-utils/extract-rio-consumer (:consumers eduspec))]
+     (when (= "variant" (:educationSpecificationSubType rio-consumer))
+       (preconditions/parent-reference! (:parent eduspec) (:institution-oin job)))
      (relation-mutations eduspec
                          :educationSpecificationId
                          (and (= "variant" (:educationSpecificationSubType rio-consumer))
@@ -117,7 +131,7 @@
                          (:children eduspec)
                          job
                          handlers)))
-  ([eduspec primary-key variant-of variants {:keys [institution-oin institution-schac-home] :as _job} {:keys [getter resolver ooapi-loader]}]
+  ([eduspec primary-key variant-of variants {:keys [institution-oin institution-schac-home] :as job} {:keys [getter resolver ooapi-loader] :as handlers}]
    {:pre [eduspec]}
    (let [add-rio-code (fn add-rio-code [entity]
                         (if (::rio/opleidingscode entity)
@@ -133,7 +147,7 @@
          eduspec (add-rio-code eduspec)
          actual (load-relation-data getter (::rio/opleidingscode eduspec) institution-oin)
          [rel-dir entity] (if variant-of
-                            [:child (load-eduspec variant-of)]
+                            [:child (or (::parent job) (load-required-parent! variant-of job handlers))]
                             [:parent (->> (keep load-eduspec variants)
                                           (filter #(s/valid? ::relations/child %)))])]
      (relation-differences eduspec rel-dir entity actual))))

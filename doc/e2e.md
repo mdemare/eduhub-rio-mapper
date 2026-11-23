@@ -78,6 +78,27 @@ each resolution request, and the resolved RIO endpoints. The second check
 must resolve only the parent, without resolving the child again. These calls
 read existing data and require no relation mutations.
 
+Unavailable-parent cases use real missing/corrupt OOAPI fixtures, an unlinked
+parent identity, and a rejected RIO relation read. They assert no RIO mutation
+requests and read the variant back to confirm its dates and existing relation
+are unchanged. The attempted updates use dates that would otherwise prune
+that relation. Fixture faults are restored outside VCR recording.
+
+Variant reconciliation fails with these explicit errors:
+
+| Error/reason | Meaning | Retryable |
+| --- | --- | --- |
+| `relation-parent-unavailable` / `missing-ooapi-parent` | Parent OOAPI data is absent or returns 404 | No |
+| `relation-parent-unavailable` / `unresolved-parent` | Parent external key has no RIO identity | No |
+| `relation-parent-unavailable` / `parent-read-failed` | Parent data or identity cannot be read | Yes, unless the provider marks the failure permanent or denies access |
+| `relation-read-failed` | RIO rejected the relation snapshot read | Yes |
+
+Parent errors carry the parent identity, institution OIN and original cause.
+Job errors expose the explicit reason in their message, the failing phase and
+retryability. Before pruning a variant's existing relations, the mapper loads
+and validates the parent and reuses that verified data during reconciliation.
+A rejected snapshot read is never treated as an empty set of relations.
+
 These cases change the OOAPI fixtures for the parent and variant between
 upserts. They never upsert or change the dates of the accredited RIO parent;
 the final case reads that parent back to verify its dates are unchanged.

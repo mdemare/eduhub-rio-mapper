@@ -195,29 +195,40 @@
         (throw (ex-info (str "Ho variant recordings predate the parent-loading scenarios. "
                              "Re-record with `make record-ho-variant-" version "` while the RIO test service is available.")
                         {:missing-directory (str (root version) "/17-load-and-resolve-parent")})))
+      (when-not (.isDirectory (io/file (str (root version) "/20-reject-missing-parent-ooapi")))
+        (throw (ex-info (str "Ho variant recordings predate unavailable-parent coverage. "
+                             "Re-record with `make record-ho-variant-" version "`.") {})))
       data)))
 
 (def changed-variant-dates {:validFrom "2017-01-01" :validTo "2024-04-25"})
 
-(defn upload-fixture-dates!
-  "Replace date fields on selected OOAPI fixtures, retaining their identities.
-  An absent end date removes validTo. Playback uses recorded OOAPI responses."
-  [mapping updates]
+(defn alter-fixtures!
+  "Record-only ObjectStore setup, outside VCR. Values transform raw bodies or are :delete."
+  [mapping transformations]
   (when (= :record vcr/vcr-mode)
     (binding [http-utils/*vcr* (fn [handler request] (handler request))]
       (let [objects (into {} (map (juxt :path identity)) (remote/remote-objects mapping))
             {:keys [container-name] :as config} (remote/config)
             info (remote/swift-auth-info config)]
-        (doseq [[fixture-name dates] updates]
+        (doseq [[fixture-name transform] transformations]
           (let [path (str (first (str/split fixture-name #"/")) "/" (get mapping fixture-name))
                 object (get objects path)]
             (when-not object
               (throw (ex-info "Ho variant fixture missing for date change" {:path path})))
-            (remote/os-put-object info container-name
-                                  (update object :body
-                                          #(json/write-str
-                                            (merge (dissoc (json/read-str % :key-fn keyword) :validFrom :validTo)
-                                                   (into {} (remove (comp nil? val)) dates)))))))))))
+            (if (= :delete transform)
+              (remote/os-delete-object info container-name object)
+              (remote/os-put-object info container-name (update object :body transform)))))))))
+
+(defn- fixture-dates [body dates]
+  (merge (dissoc body :validFrom :validTo) (into {} (remove (comp nil? val)) dates)))
+
+(defn upload-fixture-dates!
+  "Replace dates on OOAPI fixtures; absent validTo removes the end date."
+  [mapping updates]
+  (alter-fixtures! mapping
+                   (into {} (map (fn [[fixture-name dates]]
+                                   [fixture-name #(json/write-str (fixture-dates (json/read-str % :key-fn keyword) dates))]))
+                         updates)))
 
 (def validity-intersection-cases
   [{:name "parent-bounds"
@@ -338,9 +349,68 @@
                        @exchanges)
                     (str name ": exact OOAPI identities, institution context and resolution calls"))))))))
 
+(defn run-unavailable-parent!
+  [{:keys [version parent parent-name child-name mapping child-id variant-code institution-oin
+           oe-type run-job reconcile-relations step getter load!]}]
+  (let [unresolved-id (str (get mapping (str (first (str/split parent-name #"/")) "/ho-unresolved-parent")))
+        parent-body #(json/write-str (fixture-dates (json/read-str % :key-fn keyword) {:validFrom "2018-01-01"}))
+        child-body (fn [parent-id dates]
+                     (fn [raw]
+                       (let [body (fixture-dates (json/read-str raw :key-fn keyword) dates)]
+                         (json/write-str (if (= "v5" version)
+                                           (assoc body :parent parent-id)
+                                           (assoc-in body [:consumer :variantOf] parent-id))))))
+        snapshot #(let [entity (first (children (load! :oe variant-code) "hoOpleiding"))]
+                    {:start (text entity "begindatum") :end (text entity "einddatum")
+                     :relations (relations getter institution-oin variant-code)})
+        before (step 19 "snapshot-before-unavailable-parent" snapshot)
+        observe (fn [f]
+                  (let [cassette http-utils/*vcr*
+                        writes (atom [])]
+                    (binding [http-utils/*vcr*
+                              (fn [handler request]
+                                (when-let [action (get-in request [:headers "SOAPAction"])]
+                                  (when (re-find #"/(?:aanleveren|verwijderen)_" action)
+                                    (swap! writes conj action)))
+                                (cassette handler request))]
+                      (f))
+                    (is (empty? @writes) (str "Unavailable parent must cause no RIO mutations: " @writes))
+                    (is (= before (snapshot)) "Failed reconciliation preserves the variant and its exact existing relation")))]
+    (try
+      (doseq [{:keys [idx name parent-id parent-transform reason phase retryable?]}
+              [{:idx 20 :name "missing-parent-ooapi" :parent-id (:key parent) :parent-transform :delete
+                :reason "missing-ooapi-parent" :phase :prune-relations :retryable? false}
+               {:idx 21 :name "unresolved-parent" :parent-id unresolved-id :parent-transform parent-body
+                :reason "unresolved-parent" :phase :resolving :retryable? false}
+               {:idx 22 :name "failed-parent-read" :parent-id (:key parent) :parent-transform (constantly "not-json")
+                :reason "parent-read-failed" :phase :prune-relations :retryable? true}]]
+        ;; These dates deliberately require pruning the old relation if parent validation is bypassed.
+        (alter-fixtures! mapping {parent-name parent-transform
+                                   child-name (child-body parent-id {:validFrom "2019-01-01" :validTo "2021-12-31"})})
+        (step idx (str "reject-" name)
+              #(observe
+                (fn []
+                  (let [errors (:errors (run-job oe-type child-id "upsert"))]
+                    (is (= (str "Cannot reconcile variant relations: parent " parent-id " is unavailable (" reason ")")
+                           (:message errors)))
+                    (is (= phase (:phase errors)))
+                    (is (= retryable? (:retryable? errors))))))))
+      (step 23 "reject-failed-rio-relation-read"
+            #(observe
+              (fn []
+                (let [failure (try
+                                (reconcile-relations child-id "0000O0000")
+                                nil
+                                (catch clojure.lang.ExceptionInfo ex (ex-data ex)))]
+                  (is (= :relation-read-failed (:error failure)))
+                  (is (true? (:retryable? failure)))))))
+      (finally
+        (alter-fixtures! mapping {parent-name parent-body
+                                   child-name (child-body (:key parent) {:validFrom "2018-06-01"})})))))
+
 (defn run-scenario!
   [version {:keys [getter resolver]} institution-oin run-job parent-name child-name offered-name oe-type ao-type
-   {:keys [institution-schac-home relation-diff]}]
+   {:keys [institution-schac-home relation-diff reconcile-relations]}]
   (let [{:keys [parent mapping]} (scenario-data version)
         parent-id (str (get mapping parent-name))
         child-id (str (get mapping child-name))
@@ -348,7 +418,16 @@
         vcr (vcr/make-vcr)
         created (atom #{})
         job! (fn [type id action]
-               (let [result (run-job type id action)]
+               (let [result (loop [remaining 5]
+                              (let [result (run-job type id action)]
+                                ;; RIO can remove a relation/key before its reference index catches up.
+                                ;; Retry only this explicit cleanup rejection, never a scenario upsert.
+                                (if (and (= "delete" action) (> remaining 1)
+                                         (str/includes? (or (get-in result [:errors :message]) "") "P01810"))
+                                  (do
+                                    (when (= :record vcr/vcr-mode) (Thread/sleep 1000))
+                                    (recur (dec remaining)))
+                                  result)))]
                  (is (:goedgekeurd result) (pr-str result))
                  (when-not (:goedgekeurd result)
                    (throw (ex-info "Ho variant scenario job failed" {:result result :id id :action action})))
@@ -438,8 +517,12 @@
          {:parent parent :parent-name parent-name :child-name child-name :child-id child-id
           :variant-code variant-code :institution-oin institution-oin
           :institution-schac-home institution-schac-home :relation-diff relation-diff :step step})
-        (step 19 "insert-offered" #(job! ao-type offered-id "upsert"))
-        (step 20 "assert-offered"
+        (run-unavailable-parent!
+         {:version version :parent parent :parent-name parent-name :child-name child-name
+          :mapping mapping :child-id child-id :variant-code variant-code :institution-oin institution-oin
+          :oe-type oe-type :run-job run-job :reconcile-relations reconcile-relations :step step :getter getter :load! load!})
+        (step 24 "insert-offered" #(job! ao-type offered-id "upsert"))
+        (step 25 "assert-offered"
               #(let [code (resolver :ao offered-id institution-oin)
                      entity (first (children (load! :ao code) "aangebodenHOOpleiding"))]
                  (is (some? entity))
@@ -449,7 +532,7 @@
         ;; Never clean up the accredited parent, including after partial failure.
         (try
           (when (@created offered-id)
-            (step 21 "delete-offered" #(job! ao-type offered-id "delete")))
+            (step 26 "delete-offered" #(job! ao-type offered-id "delete")))
           (finally
             (when (@created child-id)
-              (step 22 "delete-variant" #(job! oe-type child-id "delete")))))))))
+              (step 27 "delete-variant" #(job! oe-type child-id "delete")))))))))

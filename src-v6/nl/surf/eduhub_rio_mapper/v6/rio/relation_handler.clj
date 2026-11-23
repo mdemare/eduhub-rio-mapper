@@ -21,6 +21,7 @@
             [clojure.spec.alpha :as s]
             [nl.surf.eduhub-rio-mapper.rio.helper :as rio-helper]
             [nl.surf.eduhub-rio-mapper.rio.mutator :as mutator]
+            [nl.surf.eduhub-rio-mapper.rio.relation-preconditions :as preconditions]
             [nl.surf.eduhub-rio-mapper.specs.mutation :as-alias mutation]
             [nl.surf.eduhub-rio-mapper.specs.ooapi :as ooapi]
             [nl.surf.eduhub-rio-mapper.specs.rio :as rio]
@@ -115,9 +116,22 @@
       (-> (relation-mutation :delete institution-oin rel)
           (mutator/mutate! rio-config)))))
 
+(defn load-required-parent! [parent-id {:keys [institution-oin institution-schac-home]} {:keys [resolver]} config]
+  (preconditions/require-parent!
+   parent-id institution-oin :programmeId
+   (fn [id] (ooapi.loader/ooapi-http-loader {::ooapi/type "programme" ::ooapi/id id
+                                            :institution-schac-home institution-schac-home :config config}))
+   (fn [entity]
+     (if (::rio/opleidingscode entity)
+       entity
+       (when-let [code (resolver :oe (:programmeId entity) institution-oin)]
+         (assoc entity ::rio/opleidingscode code))))))
+
 (defn relation-mutations
   ([prgspec job handlers config]
    {:pre [prgspec]}
+   (when (= "variant" (get-in prgspec [:consumer :specificationType]))
+     (preconditions/parent-reference! (get-in prgspec [:consumer :variantOf]) (:institution-oin job)))
    (relation-mutations prgspec
                        :programmeId
                        (-> prgspec :consumer :variantOf)
@@ -128,8 +142,8 @@
   ([prgspec
     primary-key
     variant-of variants
-    {:keys [institution-oin institution-schac-home] :as _job}
-    {:keys [getter resolver] :as _handlers}
+    {:keys [institution-oin institution-schac-home] :as job}
+    {:keys [getter resolver] :as handlers}
     config]
 
    {:pre [prgspec]}
@@ -150,7 +164,7 @@
                      (update :valid-from rio-helper/datetime->date))
          actual (load-relation-data getter (::rio/opleidingscode prgspec) institution-oin)
          [rel-dir entity] (if variant-of
-                            [:child (load-prgspec variant-of)]
+                            [:child (or (::parent job) (load-required-parent! variant-of job handlers config))]
                             [:parent (->> (keep load-prgspec variants)
                                           (filter #(get-in % [:consumer :specificationType])))])]
      (relation-differences prgspec rel-dir entity actual))))

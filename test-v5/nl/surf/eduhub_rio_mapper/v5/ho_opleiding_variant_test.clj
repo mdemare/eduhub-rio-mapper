@@ -43,6 +43,12 @@
   (let [config (config/make-config (if (= :record vcr/vcr-mode) env variant/playback-environment))
         client (clients-info/client-info (:clients config) "rio-mapper-dev.jomco.nl")
         handlers (processing/make-handlers config)
+        relation-diff (fn [id known-code]
+                              (let [entity ((:ooapi-loader handlers)
+                                            {::ooapi/type "education-specification" ::ooapi/id id
+                                             :institution-schac-home (:institution-schac-home client)})
+                                    entity (cond-> entity known-code (assoc ::rio/opleidingscode known-code))]
+                                (relation-handler/relation-mutations entity client handlers)))
         run-job (fn [type id action]
                   (job/run! handlers
                             (merge client
@@ -56,9 +62,7 @@
                            "education-specification" "program"
                            {:institution-schac-home (:institution-schac-home client)
                             :relation-diff
-                            (fn [id known-code]
-                              (let [entity ((:ooapi-loader handlers)
-                                            {::ooapi/type "education-specification" ::ooapi/id id
-                                             :institution-schac-home (:institution-schac-home client)})
-                                    entity (cond-> entity known-code (assoc ::rio/opleidingscode known-code))]
-                                (relation-handler/relation-mutations entity client handlers)))})))
+                            relation-diff
+                            :reconcile-relations (fn [id known-code]
+                                                   (relation-handler/mutate-relations!
+                                                    (relation-diff id known-code) client handlers))})))
