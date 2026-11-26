@@ -115,3 +115,8 @@ make playback-ho-variant-v5
 Use the corresponding `-v6` targets for v6. Fixture uploads happen only in
 record mode, outside VCR recording. Playback uses the recorded OOAPI responses
 and never uploads fixtures or contacts RIO.
+
+For v6, set `GATEWAY_ROOT_URL_V6` to
+`https://gateway-sandbox.playground.surfeduhub.nl/`. The endpoint key remains
+`endpoint01.sandbox.jomco.nl`, supplied through the client's
+`institution-schac-home`. Use credentials for this v6 gateway.

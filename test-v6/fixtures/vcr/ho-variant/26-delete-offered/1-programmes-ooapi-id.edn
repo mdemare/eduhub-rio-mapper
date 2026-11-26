@@ -1,0 +1,109 @@
+{:request
+ {:method :get,
+  :url
+  "https://gateway-sandbox.playground.surfeduhub.nl/programmes/ff94e4c5-aeae-4ca4-b4f6-1ac348637ca4?returnTimelineOverrides=true",
+  :headers {"X-Route" "endpoint=endpoint01.sandbox.jomco.nl"},
+  :body nil},
+ :response
+ {:status 200,
+  :body
+  {:JSONSTRING
+   {"gateway"
+    {"requestId" "2URhDRkF7XmuiFqSpcVnYm",
+     "traceparent_trace_id" "fe00659045f6e32ab51b5a704455c293",
+     "traceparent_id" "928d8f3ed566d124",
+     "request"
+     "/programmes/ff94e4c5-aeae-4ca4-b4f6-1ac348637ca4?returnTimelineOverrides=true",
+     "endpoints"
+     {"endpoint01.sandbox.jomco.nl"
+      {"url"
+       "https://objectstore.surf.nl/swift/v1/AUTH_8e0eecf8d38141f7aa98bc3078fc9ccd/rio-mapper-test-suite/programmes/ff94e4c5-aeae-4ca4-b4f6-1ac348637ca4?returnTimelineOverrides=true",
+       "responseCode" 200,
+       "headers"
+       {"content-length" "5390", "content-type" "application/json"}}}},
+    "responses"
+    {"endpoint01.sandbox.jomco.nl"
+     {"fieldsOfStudy" "0612",
+      "consumer"
+      {"educationOffererCode" "110A133",
+       "acceleratedRoute" "no_accelerated_route",
+       "sector" "secondary_vocational_education",
+       "specificationId" "aed50d64-be59-4dbd-b727-425c8ba4e157",
+       "deficiency" "deficiencies",
+       "studyChoiceCheck" "no_study_choice_check",
+       "consumerKey" "rio",
+       "requirementsActivities" "requirements",
+       "propaedeuticPhase" "no_propaedeutic_phase",
+       "educationLocationCode" "107X215"},
+      "studyLoad" [{"value" 155, "studyLoadUnit" "ects"}],
+      "validFrom" "2018-10-18",
+      "programmeType" "programme",
+      "teachingLanguages" ["eng"],
+      "programmeId" "ff94e4c5-aeae-4ca4-b4f6-1ac348637ca4",
+      "qualificationRequirements"
+      [{"language" "en-GB",
+        "value"
+        "EN TRANSLATION: Basic mathematics, thermodynamics (chemical potential), physical transport phenomena (continuity equations). . ."}
+       {"language" "nl-NL",
+        "value"
+        "NL VERTALING: Basic mathematics, thermodynamics (chemical potential), physical transport phenomena (continuity equations). . ."}],
+      "admissionRequirements"
+      [{"language" "en-GB",
+        "value"
+        "EN TRANSLATION: BCT-22803 Physical Transport Phenomena in Water Technology; and XWT-23805 Transport Phenomena in Water Technology, XWT30305 Biological Water Treatment and Recovery Technology, XWT34305 Multi-component Mass Transfer in Membrane Processes. . BPE-10305/12806 (Bio)Process Engineering Basics BT; PCC-12303 General Chemistry 1; ORC-12903 Organic Chemistry 1; MAT-14903 Mathematics 2."}
+       {"language" "nl-NL",
+        "value"
+        "NL VERTALING: BCT-22803 Physical Transport Phenomena in Water Technology; and XWT-23805 Transport Phenomena in Water Technology, XWT30305 Biological Water Treatment and Recovery Technology, XWT34305 Multi-component Mass Transfer in Membrane Processes. . BPE-10305/12806 (Bio)Process Engineering Basics BT; PCC-12303 General Chemistry 1; ORC-12903 Organic Chemistry 1; MAT-14903 Mathematics 2."}],
+      "name"
+      [{"language" "en-GB",
+        "value" "EN TRANSLATION: Talenonderwijs en Communicatie"}
+       {"language" "nl-NL",
+        "value" "NL VERTALING: Talenonderwijs en Communicatie"}],
+      "level" "nt2-2",
+      "modesOfDelivery" ["presential" "online" "hybrid" "online"],
+      "primaryCode" {"codeType" "crohoCreboCode", "code" "60740"},
+      "modeOfStudy" "dual_training",
+      "addresses"
+      [{"countryCode"
+        {"iso3166-1-alpha2" "NL",
+         "iso3166-1-alpha3" "NLD",
+         "iso3166-2" "BQ-BO",
+         "iso3166-3" "ANHH"},
+        "city" "Morra",
+        "geoLocation" {"longitude" 88, "latitude" 0},
+        "addressType" "teaching",
+        "streetNumber" "23",
+        "postalCode" "4184QU",
+        "street" "Tollenslaan"}],
+      "enrollment"
+      [{"language" "en-GB", "value" "EN TRANSLATION: . . ."}
+       {"language" "nl-NL", "value" "NL VERTALING: . . ."}],
+      "otherCodes" [{"codeType" "crohoCreboCode", "code" "60740"}],
+      "duration" "P1DT30H4S",
+      "validTo" "2021-12-18",
+      "link"
+      "https://universiteit-van-morra.nl/programs/ff94e4c5-aeae-4ca4-b4f6-1ac348637ca4",
+      "assessment"
+      [{"language" "en-GB",
+        "value"
+        "EN TRANSLATION: Als groep: 1. For both, a minimum of 4 individual assignments: 30%;- the grade for the three course elements is as follows:Individual assignment: 15%;Group assignment: 35%;Written exam: 50%;Tutorial assignments: pass/fail. ."}
+       {"language" "nl-NL",
+        "value"
+        "NL VERTALING: Als groep: 1. For both, a minimum of 4 individual assignments: 30%;- the grade for the three course elements is as follows:Individual assignment: 15%;Group assignment: 35%;Written exam: 50%;Tutorial assignments: pass/fail. ."}],
+      "firstStartDateTime" "2020-01-31T08:30:00+01:00",
+      "qualificationAwarded" "Phd",
+      "abbreviation" "TEC",
+      "organization" "6fd6c513-5a3c-cac7-99a4-d73001b99497",
+      "levelOfQualification" "2",
+      "resources"
+      ["Lelieveldt, H. Course guide. Sage.Miles, M."
+       "- lecture hand-outs and additional book chapters will be available online. Sage. Mourato (2006)."
+       "B. Practical manual Soil Pollution and Soil Protection. ."],
+      "description"
+      [{"language" "en-GB",
+        "value"
+        "EN TRANSLATION: The excursion is part of the MSc MADE programme, students will learn about the chemistry of the course. If possible, a visit of one week. More recently attention is paid to: 1. In less developed countries, livestock production should not only the 'end' of the course by contacting the course coordinator prior to registration.The innovator's course enables students to appreciate the relevance of our course)."}
+       {"language" "nl-NL",
+        "value"
+        "NL VERTALING: The excursion is part of the MSc MADE programme, students will learn about the chemistry of the course. If possible, a visit of one week. More recently attention is paid to: 1. In less developed countries, livestock production should not only the 'end' of the course by contacting the course coordinator prior to registration.The innovator's course enables students to appreciate the relevance of our course)."}]}}}},
+  :headers {"content-type" "application/json; charset=utf-8"}}}

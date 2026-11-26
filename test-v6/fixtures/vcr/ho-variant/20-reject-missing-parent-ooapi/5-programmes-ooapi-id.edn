@@ -1,0 +1,26 @@
+{:request
+ {:method :get,
+  :url
+  "https://gateway-sandbox.playground.surfeduhub.nl/programmes/320abe0e-cf26-407e-9b3a-a2328cf80c86?returnTimelineOverrides=true",
+  :headers {"X-Route" "endpoint=endpoint01.sandbox.jomco.nl"},
+  :body nil},
+ :response
+ {:status 200,
+  :body
+  {:JSONSTRING
+   {"gateway"
+    {"requestId" "1W4NfaoQfTKSonCBz8Tks2",
+     "traceparent_trace_id" "1b567efe87412c93c11d6734ad2941a9",
+     "traceparent_id" "069825bf72e85530",
+     "request"
+     "/programmes/320abe0e-cf26-407e-9b3a-a2328cf80c86?returnTimelineOverrides=true",
+     "endpoints"
+     {"endpoint01.sandbox.jomco.nl"
+      {"url"
+       "https://objectstore.surf.nl/swift/v1/AUTH_8e0eecf8d38141f7aa98bc3078fc9ccd/rio-mapper-test-suite/programmes/320abe0e-cf26-407e-9b3a-a2328cf80c86?returnTimelineOverrides=true",
+       "responseCode" 404,
+       "headers"
+       {"content-length" "9",
+        "content-type" "text/plain; charset=utf-8"}}}},
+    "responses" {}}},
+  :headers {"content-type" "application/json; charset=utf-8"}}}

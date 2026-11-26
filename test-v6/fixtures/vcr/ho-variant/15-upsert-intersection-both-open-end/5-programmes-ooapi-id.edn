@@ -1,0 +1,60 @@
+{:request
+ {:method :get,
+  :url
+  "https://gateway-sandbox.playground.surfeduhub.nl/programmes/320abe0e-cf26-407e-9b3a-a2328cf80c86?returnTimelineOverrides=true",
+  :headers {"X-Route" "endpoint=endpoint01.sandbox.jomco.nl"},
+  :body nil},
+ :response
+ {:status 200,
+  :body
+  {:JSONSTRING
+   {"gateway"
+    {"requestId" "4EEw6RpN6pbX0qCGJI3dtm",
+     "traceparent_trace_id" "f554f276036ea9508fa26e9e303bfb46",
+     "traceparent_id" "796e278fd12f74bb",
+     "request"
+     "/programmes/320abe0e-cf26-407e-9b3a-a2328cf80c86?returnTimelineOverrides=true",
+     "endpoints"
+     {"endpoint01.sandbox.jomco.nl"
+      {"url"
+       "https://objectstore.surf.nl/swift/v1/AUTH_8e0eecf8d38141f7aa98bc3078fc9ccd/rio-mapper-test-suite/programmes/320abe0e-cf26-407e-9b3a-a2328cf80c86?returnTimelineOverrides=true",
+       "responseCode" 200,
+       "headers"
+       {"content-length" "2018", "content-type" "application/json"}}}},
+    "responses"
+    {"endpoint01.sandbox.jomco.nl"
+     {"fieldsOfStudy" "0912",
+      "consumer"
+      {"consumerKey" "rio",
+       "category"
+       ["business_and_project_support"
+        "language_and_culture"
+        "technology_and_ict"],
+       "variantIds" ["aed50d64-be59-4dbd-b727-425c8ba4e157"],
+       "specificationType" "programme",
+       "sector" "higher_professional_education"},
+      "studyLoad" [{"value" 93, "studyLoadUnit" "sbu"}],
+      "validFrom" "2018-01-01T09:30:00+01:00",
+      "programmeType" "specification",
+      "programmeId" "320abe0e-cf26-407e-9b3a-a2328cf80c86",
+      "name"
+      [{"language" "en-GB", "value" "EN TRANSLATION: Toetsdeskundige"}
+       {"language" "nl-NL", "value" "NL VERTALING: Toetsdeskundige"}],
+      "level" "bachelor",
+      "primaryCode"
+      {"codeType" "identifier",
+       "code" "320abe0e-cf26-407e-9b3a-a2328cf80c86"},
+      "link"
+      "https://universiteit-van-boxtel.nl/programmes/320abe0e-cf26-407e-9b3a-a2328cf80c86",
+      "formalDocument" "diploma",
+      "abbreviation" "1T",
+      "organization" "c388522c-ebc1-2889-1899-06a89e4f5091",
+      "levelOfQualification" "6",
+      "description"
+      [{"language" "en-GB",
+        "value"
+        "EN TRANSLATION: There is a 12 credits course which offers student the opportunity to experience in the domain will be paid to the depletion of fossil resources to biomass resources for energy, raw materials and tree form. The course addresses the question if and how this relates to material struggles over natural resources and its relationship to economic and technological domains;- solving optimization problems is climate change. Within a theoretical stance to support making conscious study and career choices."}
+       {"language" "nl-NL",
+        "value"
+        "NL VERTALING: There is a 12 credits course which offers student the opportunity to experience in the domain will be paid to the depletion of fossil resources to biomass resources for energy, raw materials and tree form. The course addresses the question if and how this relates to material struggles over natural resources and its relationship to economic and technological domains;- solving optimization problems is climate change. Within a theoretical stance to support making conscious study and career choices."}]}}}},
+  :headers {"content-type" "application/json; charset=utf-8"}}}

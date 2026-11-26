@@ -1,0 +1,216 @@
+{:request
+ {:method :get,
+  :url
+  "https://gateway-sandbox.playground.surfeduhub.nl/programmes/ff94e4c5-aeae-4ca4-b4f6-1ac348637ca4/programme-offerings?pageSize=250",
+  :headers {"X-Route" "endpoint=endpoint01.sandbox.jomco.nl"},
+  :body nil},
+ :response
+ {:status 200,
+  :body
+  {:JSONSTRING
+   {"gateway"
+    {"requestId" "5r9lzBLJfqZMP77orNIQG1",
+     "traceparent_trace_id" "afb3a6a87ee9b56feee98234e035927f",
+     "traceparent_id" "da5752bbaa04e445",
+     "request"
+     "/programmes/ff94e4c5-aeae-4ca4-b4f6-1ac348637ca4/programme-offerings?pageSize=250",
+     "endpoints"
+     {"endpoint01.sandbox.jomco.nl"
+      {"url"
+       "https://objectstore.surf.nl/swift/v1/AUTH_8e0eecf8d38141f7aa98bc3078fc9ccd/rio-mapper-test-suite/programmes/ff94e4c5-aeae-4ca4-b4f6-1ac348637ca4/programme-offerings?pageSize=250",
+       "responseCode" 200,
+       "headers"
+       {"content-length" "9060", "content-type" "application/json"}}}},
+    "responses"
+    {"endpoint01.sandbox.jomco.nl"
+     {"pageSize" 10,
+      "pageNumber" 1,
+      "hasPreviousPage" false,
+      "hasNextPage" false,
+      "totalPages" 1,
+      "items"
+      [{"consumer"
+        {"consumerKey" "rio",
+         "explanationRequiredPermission"
+         "Toestemming is vereist omdat we daarom vragen.",
+         "requiredPermissionRegistration" "yes",
+         "registrationStatus" "open"},
+        "endDateTime" "2023-06-15T02:59:27+00:00",
+        "resultExpected" true,
+        "minNumberStudents" 15,
+        "teachingLanguages" ["nld"],
+        "maxNumberStudents" 200,
+        "programmeId" "ff94e4c5-aeae-4ca4-b4f6-1ac348637ca4",
+        "offeringType" "component",
+        "name"
+        [{"language" "en-GB",
+          "value" "interaction-programme-offering"}],
+        "ext" {},
+        "modesOfDelivery" ["presential"],
+        "flexibleEntryPeriodEndDateTime" "2019-09-24T03:30:39+00:00",
+        "primaryCode" {"codeType" "identifier", "code" "1234qwe12"},
+        "enrolmentPeriods"
+        [{"startDateTime" "2019-05-01T00:00:00+00:00",
+          "endDateTime" "2019-08-01T00:00:00+00:00"}],
+        "flexibleEntryPeriodStartDateTime" "2019-08-24T19:53:56+00:00",
+        "addresses"
+        [{"countryCode"
+          {"iso3166-1-alpha2" "NL",
+           "iso3166-1-alpha3" "NLD",
+           "iso3166-2" "BQ-BO",
+           "iso3166-3" "ANHH"},
+          "city" "Utrecht",
+          "addressType" "postal",
+          "geolocation" {"latitude" 52.089123, "longitude" 5.113337},
+          "streetNumber" "48",
+          "postalCode" "3511 EP",
+          "ext" {},
+          "street" "Moreelsepark",
+          "additional"
+          [{"language" "en-GB",
+            "value" "On the other side of the road"}]}],
+        "priceInformation"
+        [{"costType" "total costs",
+          "amount" "340.84",
+          "vatAmount" "40",
+          "amountWithoutVat" "300.84",
+          "currency" "EUR",
+          "displayAmount"
+          [{"language" "nl-NL", "value" "€380,84"}
+           {"language" "en-US", "value" "$401.17"}],
+          "ext" {}}],
+        "pendingNumberStudents" 50,
+        "otherCodes" [{"codeType" "identifier", "code" "1234qwe12"}],
+        "enrolledNumberStudents" 150,
+        "link"
+        "https://osiris.uu.nl/osiris_student_uuprd/OnderwijsCatalogusZoekCursus.do#submitForm?cursuscode=INFOMQNM",
+        "academicSessionId" "c08ecafe-cafe-cafe-cafe-cafecafecafe",
+        "programmeOfferingId" "c08ecafe-cafe-cafe-cafe-cafecafecafe",
+        "abbreviation" "Test-INFOMQNM-20FS",
+        "resultValueType" "1-10",
+        "description" [{"language" "en-GB", "value" ".."}],
+        "startDateTime" "2019-08-21T07:55:06+00:00"}
+       {"consumer"
+        {"consumerKey" "rio",
+         "explanationRequiredPermission"
+         "Toestemming is vereist omdat we daarom vragen.",
+         "requiredPermissionRegistration" "yes",
+         "registrationStatus" "open"},
+        "endDateTime" "2023-06-15T20:05:09+00:00",
+        "resultExpected" true,
+        "minNumberStudents" 15,
+        "teachingLanguages" ["nld"],
+        "maxNumberStudents" 200,
+        "programmeId" "ff94e4c5-aeae-4ca4-b4f6-1ac348637ca4",
+        "offeringType" "component",
+        "name"
+        [{"language" "en-GB",
+          "value" "interaction-programme-offering"}],
+        "ext" {},
+        "modesOfDelivery" ["presential"],
+        "flexibleEntryPeriodEndDateTime" "2019-09-24T08:18:29+00:00",
+        "primaryCode" {"codeType" "identifier", "code" "1234poi12"},
+        "enrolmentPeriods"
+        [{"startDateTime" "2019-05-01T00:00:00+00:00",
+          "endDateTime" "2019-08-01T00:00:00+00:00"}],
+        "flexibleEntryPeriodStartDateTime" "2019-08-27T13:18:34+00:00",
+        "addresses"
+        [{"countryCode"
+          {"iso3166-1-alpha2" "NL",
+           "iso3166-1-alpha3" "NLD",
+           "iso3166-2" "BQ-BO",
+           "iso3166-3" "ANHH"},
+          "city" "Utrecht",
+          "addressType" "postal",
+          "geolocation" {"latitude" 52.089123, "longitude" 5.113337},
+          "streetNumber" "48",
+          "postalCode" "3511 EP",
+          "ext" {},
+          "street" "Moreelsepark",
+          "additional"
+          [{"language" "en-GB",
+            "value" "On the other side of the road"}]}],
+        "priceInformation"
+        [{"costType" "total costs",
+          "amount" "340.84",
+          "vatAmount" "40",
+          "amountWithoutVat" "300.84",
+          "currency" "EUR",
+          "displayAmount"
+          [{"language" "nl-NL", "value" "€380,84"}
+           {"language" "en-US", "value" "$401.17"}],
+          "ext" {}}],
+        "pendingNumberStudents" 50,
+        "otherCodes" [{"codeType" "identifier", "code" "1234poi12"}],
+        "enrolledNumberStudents" 150,
+        "link"
+        "https://osiris.uu.nl/osiris_student_uuprd/OnderwijsCatalogusZoekCursus.do#submitForm?cursuscode=INFOMQNM",
+        "academicSessionId" "c08efade-fade-fade-fade-fadefadefade",
+        "programmeOfferingId" "c08efade-fade-fade-fade-fadefadefade",
+        "abbreviation" "Test-INFOMQNM-21FS",
+        "resultValueType" "1-10",
+        "description" [{"language" "en-GB", "value" ".."}],
+        "startDateTime" "2019-08-25T12:17:29+00:00"}
+       {"consumer"
+        {"consumerKey" "rio",
+         "explanationRequiredPermission"
+         "Toestemming is vereist omdat we daarom vragen.",
+         "requiredPermissionRegistration" "yes",
+         "registrationStatus" "open"},
+        "endDateTime" "2023-06-15T09:39:00+00:00",
+        "resultExpected" true,
+        "minNumberStudents" 15,
+        "teachingLanguages" ["nld"],
+        "maxNumberStudents" 200,
+        "programmeId" "ff94e4c5-aeae-4ca4-b4f6-1ac348637ca4",
+        "offeringType" "component",
+        "name"
+        [{"language" "en-GB",
+          "value" "interaction-programme-offering"}],
+        "ext" {},
+        "modesOfDelivery" ["presential"],
+        "flexibleEntryPeriodEndDateTime" "2019-09-24T15:04:02+00:00",
+        "primaryCode" {"codeType" "identifier", "code" "1234asd12"},
+        "enrolmentPeriods"
+        [{"startDateTime" "2019-05-01T00:00:00+00:00",
+          "endDateTime" "2019-08-01T00:00:00+00:00"}],
+        "flexibleEntryPeriodStartDateTime" "2019-08-31T06:01:37+00:00",
+        "addresses"
+        [{"countryCode"
+          {"iso3166-1-alpha2" "NL",
+           "iso3166-1-alpha3" "NLD",
+           "iso3166-2" "BQ-BO",
+           "iso3166-3" "ANHH"},
+          "city" "Utrecht",
+          "addressType" "postal",
+          "geolocation" {"latitude" 52.089123, "longitude" 5.113337},
+          "streetNumber" "48",
+          "postalCode" "3511 EP",
+          "ext" {},
+          "street" "Moreelsepark",
+          "additional"
+          [{"language" "en-GB",
+            "value" "On the other side of the road"}]}],
+        "priceInformation"
+        [{"costType" "total costs",
+          "amount" "340.84",
+          "vatAmount" "40",
+          "amountWithoutVat" "300.84",
+          "currency" "EUR",
+          "displayAmount"
+          [{"language" "nl-NL", "value" "€380,84"}
+           {"language" "en-US", "value" "$401.17"}],
+          "ext" {}}],
+        "pendingNumberStudents" 50,
+        "otherCodes" [{"codeType" "identifier", "code" "1234asd12"}],
+        "enrolledNumberStudents" 150,
+        "link"
+        "https://osiris.uu.nl/osiris_student_uuprd/OnderwijsCatalogusZoekCursus.do#submitForm?cursuscode=INFOMQNM",
+        "academicSessionId" "c08ebead-bead-bead-bead-beadbeadbead",
+        "programmeOfferingId" "c08ebead-bead-bead-bead-beadbeadbead",
+        "abbreviation" "Test-INFOMQNM-20FS",
+        "resultValueType" "1-10",
+        "description" [{"language" "en-GB", "value" ".."}],
+        "startDateTime" "2019-08-29T20:53:23+00:00"}],
+      "ext" {}}}}},
+  :headers {"content-type" "application/json; charset=utf-8"}}}

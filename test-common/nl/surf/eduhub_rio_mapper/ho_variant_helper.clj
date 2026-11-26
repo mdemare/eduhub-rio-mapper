@@ -43,7 +43,7 @@
    :rio-update-url "https://vt-webservice.duo.nl:6977/RIO/services/beheren4.0"
    :rio-recipient-oin "00000001800866472000"
    :gateway-root-url-v5 "https://gateway.test.surfeduhub.nl/"
-   :gateway-root-url-v6 "https://gateway-v6-sandbox.dev.surfeduhub.nl/"
+   :gateway-root-url-v6 "https://gateway-sandbox.playground.surfeduhub.nl/"
    :gateway-user-v5 "playback" :gateway-password-v5 "playback"
    :gateway-user-v6 "playback" :gateway-password-v6 "playback"
    :surf-conext-introspection-endpoint "https://playback.invalid/introspect"
